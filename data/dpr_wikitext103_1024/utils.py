@@ -1,6 +1,7 @@
 import faiss
 import joblib
 
+
 class Searcher:
 
     def __init__(self, index_type, dimension=768, nprobe=1):
@@ -14,7 +15,7 @@ class Searcher:
 
     def _build(self, matrix, corpus, source_corpus=None, speedup=False):
         '''dataset: a list of tuple (vector, utterance)'''
-        self.corpus = corpus 
+        self.corpus = corpus
         if speedup:
             self.move_to_gpu()
         self.searcher.train(matrix)
@@ -22,7 +23,7 @@ class Searcher:
         if speedup:
             self.move_to_cpu()
         print(f'[!] build collection with {self.searcher.ntotal} samples')
-    
+
     def _search(self, vector, topk=20):
         self.searcher.nprobe = self.nprobe
         D, I = self.searcher.search(vector, topk)
@@ -51,7 +52,7 @@ class Searcher:
         res = faiss.StandardGpuResources()
         self.searcher = faiss.index_cpu_to_gpu(res, device, self.searcher)
         print(f'[!] move index to GPU device: {device} over')
-    
+
     def move_to_cpu(self):
         self.searcher = faiss.index_gpu_to_cpu(self.searcher)
         print(f'[!] move index from GPU to CPU over')

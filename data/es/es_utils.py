@@ -1,7 +1,9 @@
-from tqdm import tqdm
-import ipdb
 import json
-from elasticsearch import Elasticsearch, helpers
+
+import ipdb
+from elasticsearch import Elasticsearch
+from elasticsearch import helpers
+from tqdm import tqdm
 
 
 class ESBuilder:
@@ -44,7 +46,7 @@ class ESBuilder:
         count = self.es.count(index=self.index)['count']
         actions = []
         counter = 0
-        
+
         for i, (q, a) in enumerate(tqdm(pairs)):
             actions.append({
                 '_index': self.index,
@@ -84,7 +86,7 @@ class ESSearcher:
                     }
                 },
                 'collapse': {
-                    'field': 'index'    
+                    'field': 'index'
                 },
                 'size': topk,
             })

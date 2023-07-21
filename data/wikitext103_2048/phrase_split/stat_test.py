@@ -1,12 +1,9 @@
-import torch
-import random
-import pickle
-from tqdm import tqdm
-import ipdb
-import numpy as np
-import json
 import argparse
+import json
+
 import nltk
+from tqdm import tqdm
+
 
 def parser_args():
     parser = argparse.ArgumentParser()
@@ -24,9 +21,9 @@ if __name__ == "__main__":
             data.append(json.loads(line))
     print(f'[!] find {len(data)} samples')
 
-    find_count, notfind_count, find_ngram, notfind_ngram= 0, 0, {}, {}
+    find_count, notfind_count, find_ngram, notfind_ngram = 0, 0, {}, {}
     overall_length = []
-    overall_count = 0 
+    overall_count = 0
     for session in tqdm(data):
         session = session['results']
         for phrase, metadata in session:
@@ -43,10 +40,10 @@ if __name__ == "__main__":
                     notfind_ngram[len(words)] = 1
                 else:
                     notfind_ngram[len(words)] += 1
-                notfind_count += len(words) 
-    print(f'[!] find ratio: {round(find_count/(find_count+notfind_count), 4)}\n')
-    sum_count = sum([value for key, value in find_ngram.items() if 0 < key <=7])
+                notfind_count += len(words)
+    print(f'[!] find ratio: {round(find_count / (find_count + notfind_count), 4)}\n')
+    sum_count = sum([value for key, value in find_ngram.items() if 0 < key <= 7])
     # find ngram
     for key, value in sorted(find_ngram.items(), key=lambda x: x[0]):
         if 0 < key <= 7:
-            print(f'[!] found {key}-gram: {round(value/sum_count, 4)}')
+            print(f'[!] found {key}-gram: {round(value / sum_count, 4)}')

@@ -1,11 +1,10 @@
-from es_utils import *
-import pickle
-from tqdm import tqdm
 import argparse
-import json
-import ipdb
-import nltk
+import pickle
 
+import nltk
+from tqdm import tqdm
+
+from es_utils import *
 
 '''Generate the BM25 gray candidates:
 Make sure the q-q BM25 index has been built
@@ -21,6 +20,7 @@ def parser_args():
     parser.add_argument('--chunk_size', default=10000, type=int)
     parser.add_argument('--prefix_len', default=32, type=int)
     return parser.parse_args()
+
 
 def clean_data(tokens):
     string = ' '.join(tokens)
@@ -44,7 +44,7 @@ def test_search(args):
                 # 32 is prefix_length and 128 is the reference length; refer to SimCTG
                 # prefix = clean_data(words[:32])
                 prefix = clean_data(words)
-                reference = clean_data(words[32:128+32])
+                reference = clean_data(words[32:128 + 32])
                 test_set.append((prefix, reference))
     print(f'[!] collect {len(test_set)} samples from the test set')
 
@@ -63,13 +63,14 @@ def test_search(args):
     print(f'[!] read data from {chunk_path}')
     pbar = tqdm(total=len(test_set))
     for idx in range(0, len(test_set), args['batch_size']):
-        prefix_batch = [prefix for prefix, reference in test_set[idx:idx+args['batch_size']]]
-        reference_batch = [reference for prefix, reference in test_set[idx:idx+args['batch_size']]]
+        prefix_batch = [prefix for prefix, reference in test_set[idx:idx + args['batch_size']]]
+        reference_batch = [reference for prefix, reference in test_set[idx:idx + args['batch_size']]]
         results = searcher.msearch(prefix_batch, topk=args['pool_size'])
         for p, r, re in zip(prefix_batch, reference_batch, results):
             collector.append((p, r, re))
         pbar.update(len(prefix_batch))
     pickle.dump(collector, open(chunk_path, 'wb'))
+
 
 if __name__ == '__main__':
     args = vars(parser_args())

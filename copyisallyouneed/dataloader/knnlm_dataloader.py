@@ -15,7 +15,7 @@ class KNNLMInferenceDataset(Dataset):
         counter = 0
         with open(path) as f:
             pbar = tqdm(f.readlines())
-            for line in pbar: 
+            for line in pbar:
                 line = line.strip().split('\t')
                 chunk = ' '.join(line[:-1])
                 tokens = self.vocab.encode(chunk, add_special_tokens=False)[:self.args['max_len']]
@@ -34,12 +34,13 @@ class KNNLMInferenceDataset(Dataset):
         return self.data[i]
 
     def collate(self, batch):
-        item = self.vocab(batch, padding=True, truncation=True, max_length=self.args['max_len'], add_special_tokens=False)
+        item = self.vocab(batch, padding=True, truncation=True, max_length=self.args['max_len'],
+                          add_special_tokens=False)
         ids = torch.LongTensor(item['input_ids']).cuda()
         mask = torch.LongTensor(item['attention_mask']).cuda()
         vl = mask.sum(dim=-1)
         return {
-            'ids': ids, 
-            'ids_mask': mask, 
+            'ids': ids,
+            'ids_mask': mask,
             'vl': vl
         }

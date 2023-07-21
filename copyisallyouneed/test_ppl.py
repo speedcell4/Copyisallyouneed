@@ -1,16 +1,18 @@
-from header import *
-import json
+import sys
+
+from config import *
 from dataloader import *
 from models import *
-from config import *
-import sys
+
 sys.path.append('../data/')
+
 
 def parser_args():
     parser = argparse.ArgumentParser(description='train parameters')
     parser.add_argument('--dataset', default='ecommerce', type=str)
     parser.add_argument('--model', type=str)
     return parser.parse_args()
+
 
 def test_ppl(**args):
     args['mode'] = 'test'
@@ -22,6 +24,7 @@ def test_ppl(**args):
 
     test_data, test_iter, sampler = load_dataset(args)
     agent.test_model_ppl(test_iter)
+
 
 if __name__ == "__main__":
     args = vars(parser_args())

@@ -1,4 +1,5 @@
-import yaml, ipdb
+import yaml
+
 
 def load_model_config(model, mode):
     config_path = f'config/{model}.yaml'
@@ -15,6 +16,7 @@ def load_model_config(model, mode):
         configuration = new_config
     return configuration
 
+
 def load_config(args):
     '''the configuration of each model can rewrite the base configuration'''
     # base config
@@ -30,6 +32,7 @@ def load_config(args):
     # load by lang
     args['lang'] = configuration['datasets'][args['dataset']]
     return configuration
+
 
 def load_base_config():
     config_path = f'config/base.yaml'

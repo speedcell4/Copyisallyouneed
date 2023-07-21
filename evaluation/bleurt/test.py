@@ -1,21 +1,18 @@
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
-import numpy as np
-from tqdm import tqdm
-from torch.cuda.amp import autocast
-import ipdb
-import mauve
-import json
-import torch
-from torch.nn.utils.rnn import pad_sequence
-from transformers import AutoModel, AutoTokenizer
 import argparse
+import json
 
+import numpy as np
+import torch
+from tqdm import tqdm
+from transformers import AutoModelForSequenceClassification
+from transformers import AutoTokenizer
 
 
 def parse_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("--test_path", type=str, default='gpt2_result.json')
     return parser.parse_args()
+
 
 def load_result(path):
     with open(path) as f:
@@ -45,7 +42,7 @@ if __name__ == "__main__":
     model = AutoModelForSequenceClassification.from_pretrained("Elron/bleurt-large-512")
     model.eval().cuda()
     dataset = load_result(args["test_path"])
-    
+
     with torch.no_grad():
         scores = []
         for reference, result in tqdm(dataset):
@@ -55,5 +52,6 @@ if __name__ == "__main__":
                 items[key] = tokenize_output[key].cuda()
             score = model(**items)[0].squeeze()
             scores.append(score.item())
-        
-    print('Results for', args['test_path'], 'BLEURT:', round(np.mean(scores), 4), 'Dataset size', len(dataset), file=open(f'{args["test_path"]}_bleurt_result.txt', 'w'))
+
+    print('Results for', args['test_path'], 'BLEURT:', round(np.mean(scores), 4), 'Dataset size', len(dataset),
+          file=open(f'{args["test_path"]}_bleurt_result.txt', 'w'))

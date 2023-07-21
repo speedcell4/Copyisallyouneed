@@ -1,10 +1,12 @@
 # %%
+import traceback
+from typing import List
+
+import numpy as np
 import torch
 import torch.nn as nn
-import traceback
-from transformers import BartTokenizer, BartForConditionalGeneration
-from typing import List
-import numpy as np
+from transformers import BartForConditionalGeneration
+from transformers import BartTokenizer
 
 
 class BARTScorer:
@@ -110,4 +112,3 @@ class BARTScorer:
         ]
 
         print(self.score(src_list, tgt_list, batch_size))
-

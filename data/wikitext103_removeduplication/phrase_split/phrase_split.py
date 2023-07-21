@@ -1,19 +1,9 @@
-import pickle
-import torch
-import multiprocessing
-from itertools import chain
-import spacy
-import re
-import torch
-import subprocess
-from copy import deepcopy
-import time
-import random
-from tqdm import tqdm
 import argparse
 import json
-import ipdb
-import multiprocessing
+import pickle
+import random
+
+from tqdm import tqdm
 
 
 def parser_args():
@@ -36,14 +26,15 @@ def load_base_data(path):
             dataset[id] = chunk
     return dataset
 
+
 class SearchItem:
 
     def __init__(
-        self,
-        min_length,
-        max_length,
-        item,
-        punc,
+            self,
+            min_length,
+            max_length,
+            item,
+            punc,
     ):
         self.text = base_data[item[0]]
         self.data, self.data_pos = self.text.split(), []
@@ -58,7 +49,7 @@ class SearchItem:
         self.last_rest, self.current_rest = [], []
         self.index = item[0]
         self.cache = []
-    
+
     def move(self):
         while not self.is_end():
             if len(self.cache) > 1 and self.cache[-1] in self.punc:
@@ -143,14 +134,17 @@ class SearchItem:
         if self.pointer < len(self.data):
             self.pointer -= 1
 
+
 def search_for_multiple_instance(
-    min_length,
-    max_length,
-    jobs,
-    args,
-    path
+        min_length,
+        max_length,
+        jobs,
+        args,
+        path
 ):
-    punc = set([',', '.', '"', "'", '?', '!', '@', '-', '<', '>', ':', ';', '/', '_', '+', '=', '~', '`', '#', '$', '%', '^', '&', '*', '(', ')', '[', ']', '{', '}'])
+    punc = set(
+        [',', '.', '"', "'", '?', '!', '@', '-', '<', '>', ':', ';', '/', '_', '+', '=', '~', '`', '#', '$', '%', '^',
+         '&', '*', '(', ')', '[', ']', '{', '}'])
     results_overall = []
     with open(path, 'w') as f:
         for item in tqdm(jobs):
@@ -170,6 +164,7 @@ def search_for_multiple_instance(
                 item = json.dumps(item, ensure_ascii=False)
                 f.write(f'{item}\n')
 
+
 def clean_data(result):
     units = []
     empty_cache = []
@@ -185,17 +180,20 @@ def clean_data(result):
         units.append((' '.join(empty_cache), []))
     return units
 
+
 def main_search(args, jobs, idx, path):
     pbar = tqdm(jobs)
     batch_size = args['bsz']
     min_length, max_length = 2, 16
     search_for_multiple_instance(min_length, max_length, jobs, args, path)
 
+
 if __name__ == '__main__':
     args = vars(parser_args())
     base_data = load_base_data(f'../base_data_{args["chunk_size"]}.txt')
     idx = args['worker_id']
-    jobs = pickle.load(open(f'../{args["recall_method"]}_search_chunk_{args["chunk_size"]}_{args["worker_id"]}.pkl', 'rb'))
+    jobs = pickle.load(
+        open(f'../{args["recall_method"]}_search_chunk_{args["chunk_size"]}_{args["worker_id"]}.pkl', 'rb'))
     jobs = random.sample(jobs, 10000)
     print(f'[!] collect {len(jobs)} data samples; begin to search for {idx} woker')
     main_search(args, jobs, idx, f'../{args["recall_method"]}_search_result_{args["chunk_size"]}_{idx}.txt')

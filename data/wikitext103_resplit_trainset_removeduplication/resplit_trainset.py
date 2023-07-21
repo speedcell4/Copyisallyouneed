@@ -1,6 +1,5 @@
-import json
 import random
-import ipdb
+
 from tqdm import tqdm
 
 random.seed(0)
@@ -17,7 +16,6 @@ print(f'[!] collect {len(test_set)} test set and {len(train_set)} train set')
 with open('base_data_train.txt', 'w') as f:
     for line in tqdm(train_set):
         f.write(line + '\n')
-
 
 with open('base_data_test.txt', 'w') as f:
     for line in tqdm(test_set):

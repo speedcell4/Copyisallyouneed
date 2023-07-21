@@ -1,9 +1,7 @@
-import torch
-import pickle
-from tqdm import tqdm
-import ipdb
-import numpy as np
 import json
+
+import numpy as np
+from tqdm import tqdm
 
 data = []
 with open('searched_results_0.txt') as f:
@@ -27,4 +25,4 @@ with open('searched_results_0.txt') as f:
             file_counter += 1
         size += 1
     print(f'[!] rate: {np.mean(counter)}')
-    print(f'[!] file rate: {file_counter/size}')
+    print(f'[!] file rate: {file_counter / size}')

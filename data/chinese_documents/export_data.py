@@ -1,7 +1,7 @@
 import json
-import ipdb
-from tqdm import tqdm
 import pickle
+
+from tqdm import tqdm
 
 with open('bm25_search_result_0.txt') as f:
     dataset = [json.loads(line) for line in f.readlines()]

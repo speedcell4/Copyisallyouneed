@@ -1,8 +1,8 @@
-import faiss
-import torch
-from utils import *
-from tqdm import tqdm
 import numpy as np
+import torch
+from tqdm import tqdm
+
+from utils import *
 
 split_rate = 0.03
 
@@ -26,10 +26,8 @@ for i in tqdm(range(8)):
         text = ['wikitext,' + i for i in text]
         texts.extend(text)
         print(f'[!] collect embeddings: {current_num}')
-embds = np.concatenate(embds) 
+embds = np.concatenate(embds)
 en_wiki_searcher.add(embds, texts)
 print(f'[!] add the wikitext-103 index over')
 en_wiki_searcher.save(f'subindex_added/dpr_faiss_{split_rate}.ckpt', f'subindex_added/dpr_corpus_{split_rate}.ckpt')
 print(f'[!] save faiss index over')
-
-

@@ -1,19 +1,13 @@
-from tqdm import tqdm
-from evaluate import load
-from transformers import GPT2LMHeadModel, GPT2TokenizerFast
-from torch.cuda.amp import autocast
-import ipdb
-import mauve
-import json
 import torch
-from torch.nn.utils.rnn import pad_sequence
-from transformers import AutoModel, AutoTokenizer
-import argparse
 from datasets import load_dataset
+from tqdm import tqdm
+from transformers import GPT2LMHeadModel
+from transformers import GPT2TokenizerFast
 
 '''test the ground-truth perplexity:
 refer to https://huggingface.co/docs/transformers/perplexity for more details
 '''
+
 
 def calculate_ppl(test):
     device = "cuda"
@@ -22,7 +16,7 @@ def calculate_ppl(test):
     tokenizer = GPT2TokenizerFast.from_pretrained(model_id)
     encodings = tokenizer("\n\n".join(test), return_tensors="pt")
     max_length = model.config.n_positions
-    stride = 1024    # maximum position
+    stride = 1024  # maximum position
     seq_len = encodings.input_ids.size(1)
 
     nlls = []
@@ -52,10 +46,9 @@ def calculate_ppl(test):
     ppl = torch.exp(torch.stack(nlls).sum() / end_loc)
     return ppl
 
+
 if __name__ == "__main__":
     test = load_dataset("wikitext", "wikitext-103-v1", split="test")
     test = [line['text'] for line in test]
     ppl = calculate_ppl(test)
     print(f'[!] ppl: {ppl}')
-
-

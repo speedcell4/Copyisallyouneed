@@ -1,12 +1,11 @@
-import numpy as np
-from tqdm import tqdm
 import ipdb
+from tqdm import tqdm
 from transformers import AutoTokenizer
 
 f1 = open('base_data_128.txt')
 f2 = open('base_data_128_original.txt')
 
-error_num =0 
+error_num = 0
 
 for i in tqdm(range(100)):
     l1 = f1.readline()
@@ -21,4 +20,4 @@ for i in tqdm(range(100)):
     except:
         error_num += 1
 
-    print(f'[!] error rate: {error_num/1000}')
+    print(f'[!] error rate: {error_num / 1000}')

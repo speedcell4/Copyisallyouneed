@@ -1,16 +1,19 @@
-from tqdm import tqdm
-from torch.cuda.amp import autocast
-import ipdb
-import mauve
+import argparse
 import json
+
+import mauve
 import torch
 from torch.nn.utils.rnn import pad_sequence
-from transformers import AutoModel, AutoTokenizer
-import argparse
+from tqdm import tqdm
+from transformers import AutoModel
+from transformers import AutoTokenizer
+
 
 def get_features(model, ids, ids_mask):
-    features = model(input_ids=ids, attention_mask=ids_mask, output_hidden_states=True).hidden_states[-1][range(len(ids)), 0, :]    # [B, E]
+    features = model(input_ids=ids, attention_mask=ids_mask, output_hidden_states=True).hidden_states[-1][
+               range(len(ids)), 0, :]  # [B, E]
     return features.cpu()
+
 
 def get_vocab_and_model(path):
     vocab = AutoTokenizer.from_pretrained(path)
@@ -18,6 +21,7 @@ def get_vocab_and_model(path):
     model.eval()
     model.cuda()
     return vocab, model
+
 
 def convert_to_batch(vocab, lists):
     ids = []
@@ -30,6 +34,7 @@ def convert_to_batch(vocab, lists):
     ids, mask = to_cuda(ids, mask)
     return ids, mask
 
+
 def to_cuda(*args):
     '''map the tensor on cuda device'''
     if not torch.cuda.is_available():
@@ -40,17 +45,20 @@ def to_cuda(*args):
         tensor.append(i)
     return tensor
 
+
 def generate_mask(ids, pad_token_idx=0):
     '''generate the mask matrix of the ids, default padding token idx is 0'''
     mask = torch.ones_like(ids)
     mask[ids == pad_token_idx] = 0.
     return mask
 
+
 def parse_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("--test_path", type=str, default='gpt2_result.json')
     parser.add_argument("--device", type=int)
     return parser.parse_args()
+
 
 def load_result(path):
     with open(path) as f:
@@ -60,7 +68,7 @@ def load_result(path):
             prefix = item['prefix']
             reference = item['reference']
             result = item['text']
-            
+
             reference_ids = vocab.encode(reference, add_special_tokens=False)
             result_ids = vocab.encode(result, add_special_tokens=False)
 
@@ -71,6 +79,7 @@ def load_result(path):
     print(f'[!] collect {len(dataset)} samples')
     return dataset
 
+
 if __name__ == "__main__":
     args = vars(parse_config())
     vocab, model = get_vocab_and_model('roberta-large')
@@ -79,7 +88,7 @@ if __name__ == "__main__":
     with torch.no_grad():
         gt_f, pre_f = [], []
         for i in tqdm(range(0, len(dataset), batch_size)):
-            batch = dataset[i:i+batch_size]
+            batch = dataset[i:i + batch_size]
             ids, mask = convert_to_batch(vocab, [i[0] for i in batch])
             gt_f.append(get_features(model, ids, mask))
             ids, mask = convert_to_batch(vocab, [i[1] for i in batch])
@@ -90,6 +99,7 @@ if __name__ == "__main__":
             p_features=gt_f,
             q_features=pre_f,
             device_id=args['device'],
-            mauve_scaling_factor=5.0, 
+            mauve_scaling_factor=5.0,
         )
-    print('Results for', args['test_path'], 'MAUVE:', out.mauve, 'Dataset size', len(dataset), file=open(f'{args["test_path"]}_result.txt', 'w'))
+    print('Results for', args['test_path'], 'MAUVE:', out.mauve, 'Dataset size', len(dataset),
+          file=open(f'{args["test_path"]}_result.txt', 'w'))

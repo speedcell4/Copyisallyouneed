@@ -1,5 +1,6 @@
 from header import *
 
+
 class GPT2Baseline(nn.Module):
 
     def __init__(self, **args):
@@ -23,11 +24,11 @@ class GPT2Baseline(nn.Module):
         output = self.model(input_ids=ids, attention_mask=ids_mask)
         gen_logits = output.logits
         loss = self.gen_loss_fct(
-            gen_logits.view(-1, gen_logits.size(-1)), 
+            gen_logits.view(-1, gen_logits.size(-1)),
             ods.reshape(-1)
         )
         # token acc
-        chosen_tokens = torch.max(gen_logits, dim=-1)[1]    # [B, S-1]
+        chosen_tokens = torch.max(gen_logits, dim=-1)[1]  # [B, S-1]
         gen_acc = (chosen_tokens.reshape(-1) == ods.reshape(-1)).to(torch.long)
         valid_mask = (ods != self.pad).reshape(-1)
         valid_tokens = gen_acc & valid_mask
@@ -42,9 +43,8 @@ class GPT2Baseline(nn.Module):
         shift_logits = gen_logits[..., :-1, :].contiguous()
         shift_labels = ids[..., 1:].contiguous()
         loss = self.gen_loss_fct(
-            shift_logits.view(-1, shift_logits.size(-1)), 
+            shift_logits.view(-1, shift_logits.size(-1)),
             shift_labels.view(-1)
         )
         ppl = math.exp(loss.item())
         return ppl
-

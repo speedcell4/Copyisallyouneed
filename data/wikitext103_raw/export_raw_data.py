@@ -1,11 +1,9 @@
-from datasets import load_dataset
-import pprint
-import numpy as np
-from tqdm import tqdm
 import sys
-sys.path.append('..')
-import ipdb
 
+from datasets import load_dataset
+from tqdm import tqdm
+
+sys.path.append('..')
 
 dataset = load_dataset('wikitext', 'wikitext-103-v1')
 

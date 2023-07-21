@@ -1,17 +1,17 @@
-from tqdm import tqdm
-import json
-import spacy
-import jieba
-import ipdb
-import numpy as np
-from transformers import AutoTokenizer
 import argparse
+import json
+
+import numpy as np
+import spacy
+from tqdm import tqdm
+from transformers import AutoTokenizer
 
 
 def parse_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("--test_path", type=str, default='gpt2_result.json')
     return parser.parse_args()
+
 
 def load_result(path):
     with open(path) as f:
@@ -34,15 +34,17 @@ def load_result(path):
     print(f'[!] collect {len(dataset)} samples')
     return dataset
 
+
 def distinct_sentence_level_char(sentence, n=1):
     items = [token.text for token in nlp(sentence)]
     base = []
     for i in range(0, len(items) - n + 1):
-        base.append(tuple(items[i:i+n]))
+        base.append(tuple(items[i:i + n]))
     try:
         return 1 - len(set(base)) / len(base)
     except:
         return 1.
+
 
 if __name__ == "__main__":
     args = vars(parse_config())

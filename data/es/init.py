@@ -1,7 +1,7 @@
-from es_utils import *
 import argparse
-import random
-import ipdb
+
+from es_utils import *
+
 
 def parser_args():
     parser = argparse.ArgumentParser()
@@ -21,6 +21,7 @@ def copyisallyouneed_dataset(args):
             dataset.append((context, index))
     print(f'[!] collect {len(dataset)} sampels for BM25 retrieval')
     return dataset
+
 
 if __name__ == "__main__":
     args = vars(parser_args())

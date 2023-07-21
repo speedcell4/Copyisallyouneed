@@ -1,9 +1,9 @@
-from utils import *
-import ipdb
+import numpy as np
 import torch
 from tqdm import tqdm
-import joblib
-import numpy as np
+
+from utils import *
+
 
 def build_index(index_type):
     embds, texts = [], []
@@ -22,7 +22,7 @@ def build_index(index_type):
             embds.append(embed.numpy())
             texts.extend(text)
             print(f'[!] collect embeddings: {current_num}')
-    embds = np.concatenate(embds) 
+    embds = np.concatenate(embds)
     searcher = Searcher(index_type, dimension=768)
     searcher._build(embds, texts, speedup=True)
     print(f'[!] train the searcher over')
@@ -30,6 +30,7 @@ def build_index(index_type):
 
     searcher.save('dpr_faiss.ckpt', 'dpr_corpus.ckpt')
     print(f'[!] save faiss index over')
+
 
 if __name__ == "__main__":
     build_index('Flat')

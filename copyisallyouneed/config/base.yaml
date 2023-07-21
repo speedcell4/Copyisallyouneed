@@ -1,21 +1,21 @@
-datasets: 
-    wikitext103: en
-    chinese_documents: zh
-    lawmt: en
-    en_wiki: en
+datasets:
+  wikitext103: en
+  chinese_documents: zh
+  lawmt: en
+  en_wiki: en
 
 models:
-    copyisallyouneed: 
-        model_name: Copyisallyouneed
-        dataset_name: CopyisallyouneedWikitext103V2Dataset
-    gpt2:
-        model_name: GPT2Baseline
-        # dataset_name: GPT2Dataset
-        dataset_name: GPT2PPLDataset
-    knnlm:
-        model_name: KNNLMBaseline
-        # dataset_name: KNNLMInferenceDataset
-        dataset_name: GPT2PPLDataset
+  copyisallyouneed:
+    model_name: Copyisallyouneed
+    dataset_name: CopyisallyouneedWikitext103V2Dataset
+  gpt2:
+    model_name: GPT2Baseline
+    # dataset_name: GPT2Dataset
+    dataset_name: GPT2PPLDataset
+  knnlm:
+    model_name: KNNLMBaseline
+    # dataset_name: KNNLMInferenceDataset
+    dataset_name: GPT2PPLDataset
 
 
 # ========= Global configuration ========== #

@@ -3,12 +3,12 @@ from .util_func import *
 
 
 class GPT2Dataset(Dataset):
-    
+
     def __init__(self, **args):
         self.args = args
         self.vocab = AutoTokenizer.from_pretrained(args['tokenizer'][args['lang']])
         self.pad = self.vocab.convert_tokens_to_ids('<|endoftext|>')
-        
+
         self.data = []
         with open(f'{args["data_root_dir"]}/base_data_128.txt') as f:
             for line in tqdm(f.readlines()):
@@ -33,18 +33,18 @@ class GPT2Dataset(Dataset):
         mask = generate_mask(ids)
         ids, mask = to_cuda(ids, mask)
         return {
-            'ids': ids, 
-            'ids_mask': mask, 
+            'ids': ids,
+            'ids_mask': mask,
         }
 
 
 class GPT2PPLDataset(Dataset):
-    
+
     def __init__(self, **args):
         self.args = args
         self.vocab = AutoTokenizer.from_pretrained(args['tokenizer'][args['lang']])
         self.pad = self.vocab.convert_tokens_to_ids('<|endoftext|>')
-        
+
         self.data = []
         # directly load the standard wikitext-103 test set from the huggingface datasets package
         dataset = load_dataset('wikitext', 'wikitext-103-v1')['test']
@@ -65,6 +65,6 @@ class GPT2PPLDataset(Dataset):
         mask = generate_mask(ids)
         ids, mask = to_cuda(ids, mask)
         return {
-            'ids': ids, 
-            'ids_mask': mask, 
+            'ids': ids,
+            'ids_mask': mask,
         }

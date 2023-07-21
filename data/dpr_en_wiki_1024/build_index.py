@@ -1,9 +1,9 @@
-from utils import *
-import ipdb
+import numpy as np
 import torch
 from tqdm import tqdm
-import joblib
-import numpy as np
+
+from utils import *
+
 
 def build_index(index_type, max_num):
     embds, texts = [], []
@@ -28,7 +28,7 @@ def build_index(index_type, max_num):
                 break
         if len(texts) >= max_num:
             break
-    embds = np.concatenate(embds) 
+    embds = np.concatenate(embds)
     if len(texts) > max_num:
         texts = texts[:max_num]
         embds = embds[:max_num]
@@ -60,11 +60,12 @@ def build_index(index_type, max_num):
     searcher.save(f'subindex/dpr_faiss_{split_rate}.ckpt', f'subindex/dpr_corpus_{split_rate}.ckpt')
     print(f'[!] save faiss index over')
 
+
 if __name__ == "__main__":
     split_rate = 0.03
     print(f'[!] build index with {split_rate} rate')
     num = int(split_rate * 21000000)
     # en-wiki subindex
     build_index('IVF10000,PQ16', num)
-    
+
     # build_index('IVF100000,PQ16', num)

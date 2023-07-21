@@ -3,7 +3,7 @@ from .util_func import *
 
 
 class CopyisallyouneedWikitext103V2Dataset(Dataset):
-    
+
     def __init__(self, **args):
         self.args = args
         self.bert_vocab = AutoTokenizer.from_pretrained(args['phrase_encoder_tokenizer'][args['lang']])
@@ -51,7 +51,8 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
         self.cache = load_lines_chunk(self.current_file_handler, self.buffer_size)
         if len(self.cache) == 0:
             # current file runs over, cyclely loading
-            self.current_file_index = 0 if self.current_file_index == len(self.file_lists) - 1 else self.current_file_index + 1
+            self.current_file_index = 0 if self.current_file_index == len(
+                self.file_lists) - 1 else self.current_file_index + 1
             self.current_file_handler = open(self.file_lists[self.current_file_index], 'r')
             self.cache = load_lines_chunk(self.current_file_handler, self.buffer_size)
         random.shuffle(self.cache)
@@ -99,7 +100,7 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
                         try:
                             phrase_length = len(phrase_)
                             # minus 1 means due to the empty character before the phrase
-                            doc_end_pos = self.base_data[base_index][start_pos-1+phrase_length:].index(phrase_)
+                            doc_end_pos = self.base_data[base_index][start_pos - 1 + phrase_length:].index(phrase_)
                         except:
                             # this phrase will not be used
                             cache_phrase.append((phrase_, 0))
@@ -216,16 +217,20 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
             end_labels.append(end_labels_)
         assert counter == len(phrase_to_doc) + sum(error_label)
         query_num = counter - sum(error_label)
-            
+
         ######
         # prepare the batch
-        gpt2_ids = pad_sequence([torch.LongTensor(i) for i in gpt2_ids], padding_value=self.vocab.eos_token_id, batch_first=True)
-        start_labels = pad_sequence([torch.LongTensor(i) for i in start_labels], padding_value=self.vocab.eos_token_id, batch_first=True)
-        end_labels = pad_sequence([torch.LongTensor(i) for i in end_labels], padding_value=self.vocab.eos_token_id, batch_first=True)
-        bert_ids = pad_sequence([torch.LongTensor(i) for i in bert_batch], padding_value=self.bert_vocab.pad_token_id, batch_first=True)
+        gpt2_ids = pad_sequence([torch.LongTensor(i) for i in gpt2_ids], padding_value=self.vocab.eos_token_id,
+                                batch_first=True)
+        start_labels = pad_sequence([torch.LongTensor(i) for i in start_labels], padding_value=self.vocab.eos_token_id,
+                                    batch_first=True)
+        end_labels = pad_sequence([torch.LongTensor(i) for i in end_labels], padding_value=self.vocab.eos_token_id,
+                                  batch_first=True)
+        bert_ids = pad_sequence([torch.LongTensor(i) for i in bert_batch], padding_value=self.bert_vocab.pad_token_id,
+                                batch_first=True)
         gpt2_mask = generate_mask(gpt2_ids, pad_token_idx=self.vocab.eos_token_id)
         bert_mask = generate_mask(bert_ids, pad_token_idx=self.bert_vocab.pad_token_id)
-        
+
         ###### prepare the document mask (only for the query position)
         ###### [Q, N_p]
         total_phrase_num = bert_ids.size(0) * bert_ids.size(1)
@@ -234,7 +239,7 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
         chunk_size = bert_ids.size(1)
         for i in range(query_num):
             start_pos = phrase_to_doc[i] * chunk_size
-            end_pos = phrase_to_doc[i] * chunk_size + chunk_size 
+            end_pos = phrase_to_doc[i] * chunk_size + chunk_size
             pos_mask[i, start_pos:end_pos] = 1
 
         ###### get the query_pos position
@@ -243,7 +248,7 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
 
     def save(self):
         pass
-        
+
     def collate(self, batch):
         assert len(batch) == 1
         gpt2_ids, start_labels, end_labels, bert_ids, gpt2_mask, bert_mask, pos_mask = batch[0]

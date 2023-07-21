@@ -1,10 +1,12 @@
-from header import *
 import json
+import sys
+
+from config import *
 from dataloader import *
 from models import *
-from config import *
-import sys
+
 sys.path.append('../data/')
+
 
 def parser_args():
     parser = argparse.ArgumentParser(description='train parameters')
@@ -13,6 +15,7 @@ def parser_args():
     parser.add_argument('--recall_topk', type=int, default=20)
     parser.add_argument('--decoding_method', type=str)
     return parser.parse_args()
+
 
 def main_generation(**args):
     args['mode'] = 'test'
@@ -40,17 +43,21 @@ def main_generation(**args):
         texts = texts[:100]
 
         for prefix, reference in tqdm(texts):
-            text, time_cost = agent.knnlm_generation(prefix, decoding_method=args['decoding_method'], top_k=-1, top_p=0.95, temp=1., get_time_cost=True)
+            text, time_cost = agent.knnlm_generation(prefix, decoding_method=args['decoding_method'], top_k=-1,
+                                                     top_p=0.95, temp=1., get_time_cost=True)
             collection.append({
-                'prefix': prefix, 
-                'reference': reference, 
+                'prefix': prefix,
+                'reference': reference,
                 'text': text,
                 'time_cost': time_cost
             })
     return collection, args
 
+
 if __name__ == "__main__":
     args = vars(parser_args())
     result, args = main_generation(**args)
-    with open(f'raw_files/random_runs_lawmt/{args["dataset"]}_knnlm_result_{args["decoding_method"]}_full_{args["lambda"]}_{args["alpha"]}.json', 'w') as f:
+    with open(
+            f'raw_files/random_runs_lawmt/{args["dataset"]}_knnlm_result_{args["decoding_method"]}_full_{args["lambda"]}_{args["alpha"]}.json',
+            'w') as f:
         json.dump(result, f, indent=4)

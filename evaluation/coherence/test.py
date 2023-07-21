@@ -1,16 +1,12 @@
-import sys
-import ipdb
-import os
-import operator
-from operator import itemgetter
-import torch
-from torch import nn
-import random
 import argparse
-import numpy as np
-import torch.nn.functional as F
-
 import json
+
+import numpy as np
+import torch
+import torch.nn.functional as F
+from torch import nn
+
+
 def load_result(in_f):
     with open(in_f) as f:
         result_list = json.load(f)
@@ -23,16 +19,17 @@ def load_result(in_f):
     assert len(one_prefix_text_list) == len(one_prediction_list)
     return one_prefix_text_list, one_prediction_list
 
+
 class CoherenceEvaluator(nn.Module):
     def __init__(self, model_name):
         super(CoherenceEvaluator, self).__init__()
         from transformers import GPT2Tokenizer, OPTForCausalLM
-        print ('Loading model...')
+        print('Loading model...')
         self.model = OPTForCausalLM.from_pretrained(model_name)
         self.tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-        print ('Model loaded.')
+        print('Model loaded.')
         self.vocab_size = self.model.config.vocab_size
-        print ('The vocabulary size of the language model is {}'.format(self.vocab_size))
+        print('The vocabulary size of the language model is {}'.format(self.vocab_size))
         self.embed_dim = self.model.config.hidden_size
         self.bos_token_id = self.tokenizer.bos_token_id
 
@@ -43,7 +40,7 @@ class CoherenceEvaluator(nn.Module):
         outputs = self.model(input_ids=input_ids, output_hidden_states=True)
         logits = outputs.logits
         assert logits.size() == torch.Size([bsz, seqlen, self.vocab_size])
-        probability = F.softmax(logits, dim=-1) # bsz x seqlen x vocab_size
+        probability = F.softmax(logits, dim=-1)  # bsz x seqlen x vocab_size
         last_hidden_states = outputs.hidden_states[-1]
         assert last_hidden_states.size() == torch.Size([bsz, seqlen, self.embed_dim])
         return last_hidden_states, probability
@@ -60,7 +57,7 @@ class CoherenceEvaluator(nn.Module):
         assert len(p_list) == len(l_list)
         result_list = []
         for idx in range(seqlen):
-            one_prob = p_list[idx][:,l_list[idx]].view(-1).detach().cpu().numpy()[0]
+            one_prob = p_list[idx][:, l_list[idx]].view(-1).detach().cpu().numpy()[0]
             result_list.append(one_prob)
         return result_list
 
@@ -71,14 +68,14 @@ class CoherenceEvaluator(nn.Module):
         '''
         _, context_len = context_id.size()
         _, prediction_len = prediction_id.size()
-        concat = torch.cat([context_id, prediction_id], dim = 1) # 1 x (context_len + prediction)
+        concat = torch.cat([context_id, prediction_id], dim=1)  # 1 x (context_len + prediction)
         hidden_states, probabilities = self.forward(concat)
         _, _, vocab_size = probabilities.size()
         # hidden_states: 1 x (context_len + prediction) x embed_dim
         # probabilities: 1 x (context_len + prediction) x vocab_size
 
         # extract probabilities
-        label_probabilities = probabilities[:,:-1,:][:,-prediction_len:,:]
+        label_probabilities = probabilities[:, :-1, :][:, -prediction_len:, :]
         # label_probabilities: 1 x prediction x vocab_size
         assert label_probabilities.size()[1] == prediction_len
         assert label_probabilities.size()[2] == vocab_size
@@ -94,11 +91,11 @@ class CoherenceEvaluator(nn.Module):
     def evaluate_coherence(self, prefix_text, prediction_text, cuda_available, device):
         context_tokens = self.tokenizer.tokenize(prefix_text)
         context_token_ids = [self.bos_token_id] + self.tokenizer.convert_tokens_to_ids(context_tokens)
-        context_token_ids = torch.LongTensor(context_token_ids).view(1,-1)
+        context_token_ids = torch.LongTensor(context_token_ids).view(1, -1)
 
         prediction_tokens = self.tokenizer.tokenize(prediction_text)
         prediction_token_ids = self.tokenizer.convert_tokens_to_ids(prediction_tokens)
-        prediction_token_ids = torch.LongTensor(prediction_token_ids).view(1,-1)
+        prediction_token_ids = torch.LongTensor(prediction_token_ids).view(1, -1)
 
         if cuda_available:
             context_token_ids = context_token_ids.cuda(device)
@@ -107,7 +104,10 @@ class CoherenceEvaluator(nn.Module):
         coherence = self.compute_coherence(context_token_ids, prediction_token_ids)
         return coherence
 
+
 import progressbar
+
+
 def evaluate_batch_coherence(model, prefix_text_list, prediction_text_list, cuda_available, device):
     assert len(prefix_text_list) == len(prediction_text_list)
 
@@ -127,6 +127,7 @@ def evaluate_batch_coherence(model, prefix_text_list, prediction_text_list, cuda
         p.finish()
     return np.mean(result_list)
 
+
 def parse_config():
     parser = argparse.ArgumentParser()
     # model and data configuration
@@ -136,9 +137,10 @@ def parse_config():
     # parser.add_argument("--test_path", type=str, default='copyisallyouneed_result.json')
     return parser.parse_args()
 
+
 if __name__ == '__main__':
     if torch.cuda.is_available():
-        print ('Cuda is available.')
+        print('Cuda is available.')
     cuda_available = torch.cuda.is_available()
     args = parse_config()
     device = torch.device('cuda')
@@ -151,8 +153,8 @@ if __name__ == '__main__':
     model.eval()
 
     all_prefix_text_list, all_prediction_list = load_result(args.test_path)
-    coherence_score = evaluate_batch_coherence(model, all_prefix_text_list, 
-        all_prediction_list, cuda_available=cuda_available, device=device)
+    coherence_score = evaluate_batch_coherence(model, all_prefix_text_list,
+                                               all_prediction_list, cuda_available=cuda_available, device=device)
 
     coherence_mean = np.mean(coherence_score)
     print('coherence', coherence_mean)

@@ -1,8 +1,10 @@
 # %%
-from utils import *
 from copy import deepcopy
-from tqdm import trange
+
 from tqdm import tqdm
+from tqdm import trange
+
+from utils import *
 
 
 class SUMStat:

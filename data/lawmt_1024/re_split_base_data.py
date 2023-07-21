@@ -1,8 +1,7 @@
-import json
 import re
-import ipdb
+
 from tqdm import tqdm
-from nltk.tokenize import sent_tokenize
+
 
 def sentence_token_nltk(str):
     sent_tokenize_list = re.split(r'([.,])', str)
@@ -14,13 +13,15 @@ def sentence_token_nltk(str):
             sents.append(item)
     return sents
 
+
 chunk_size = 128
 
 with open('base_data.txt') as f:
     datasets = ['\t'.join(line.strip().split('\t')[:-1]) for line in f.readlines()]
     new_datasets, idx = [], 0
     for item in tqdm(datasets):
-        item = item.replace(' @-@ ', '-').replace(' @,@ ', ', ').replace(' @.@ ', '.').replace('<unk>', '<|endoftext|>').strip()
+        item = item.replace(' @-@ ', '-').replace(' @,@ ', ', ').replace(' @.@ ', '.').replace('<unk>',
+                                                                                               '<|endoftext|>').strip()
         sentences = sentence_token_nltk(item)
         cache, counter = [], 0
         for sent in sentences:

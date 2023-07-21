@@ -3,8 +3,10 @@ from collections import namedtuple
 from typing import List
 
 import torch
-from tqdm import tqdm, trange
-from transformers import AdamW, get_linear_schedule_with_warmup
+from tqdm import tqdm
+from tqdm import trange
+from transformers import AdamW
+from transformers import get_linear_schedule_with_warmup
 
 from models.bart_utils import ShardedBART
 

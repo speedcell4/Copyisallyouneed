@@ -1,19 +1,17 @@
-from tqdm import tqdm
-import numpy as np
-from torch.cuda.amp import autocast
-import ipdb
-import mauve
-import json
-import torch
-from torch.nn.utils.rnn import pad_sequence
-from transformers import AutoModel, AutoTokenizer
 import argparse
+import json
+
+import mauve
+from tqdm import tqdm
+from transformers import AutoTokenizer
+
 
 def parse_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("--test_path", type=str, default='gpt2_result.json')
     parser.add_argument("--device", type=int)
     return parser.parse_args()
+
 
 def load_result(path):
     with open(path) as f:
@@ -34,18 +32,20 @@ def load_result(path):
     print(f'[!] collect {len(dataset)} samples')
     return dataset
 
+
 if __name__ == "__main__":
     args = vars(parse_config())
     vocab = AutoTokenizer.from_pretrained('gpt2-large')
     dataset = load_result(args["test_path"])
     out = mauve.compute_mauve(
-        p_text=[i[0] for i in dataset], 
-        q_text=[i[1] for i in dataset], 
-        device_id=args['device'], 
-        max_text_length=512, 
-        verbose=False, 
-        mauve_scaling_factor=2.0, 
+        p_text=[i[0] for i in dataset],
+        q_text=[i[1] for i in dataset],
+        device_id=args['device'],
+        max_text_length=512,
+        verbose=False,
+        mauve_scaling_factor=2.0,
         featurize_model_name='gpt2-large',
     )
-    print('Results for', args['test_path'], 'MAUVE:', out.mauve, 'Dataset size', len(dataset), file=open(f'{args["test_path"]}_result.txt', 'w'))
+    print('Results for', args['test_path'], 'MAUVE:', out.mauve, 'Dataset size', len(dataset),
+          file=open(f'{args["test_path"]}_result.txt', 'w'))
     print('Results for', args['test_path'], 'MAUVE:', out.mauve, 'Dataset size', len(dataset))

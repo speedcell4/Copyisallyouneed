@@ -1,11 +1,13 @@
-from transformers import DPRContextEncoder, DPRContextEncoderTokenizer
-import torch.nn.functional as F
-import torch
-from torch.utils.data import Dataset, DataLoader
-import ipdb
 import argparse
-from tqdm import tqdm
+
+import torch
 import torch.distributed as dist
+from torch.utils.data import DataLoader
+from torch.utils.data import Dataset
+from tqdm import tqdm
+from transformers import DPRContextEncoder
+from transformers import DPRContextEncoderTokenizer
+
 
 def parser_args():
     parser = argparse.ArgumentParser(description='train parameters')
@@ -28,8 +30,8 @@ class DPRDataset(Dataset):
                 # only encode the first chunk
                 # if label.endswith(',0'):
                 self.data.append((document, label))
-        print(f'[!] load {len(self.data)} samples') 
-                
+        print(f'[!] load {len(self.data)} samples')
+
     def __len__(self):
         return len(self.data)
 
@@ -41,14 +43,17 @@ class DPRDataset(Dataset):
         label = [i[1] for i in batch]
         return document, label
 
+
 def inference_one_batch(text_list):
     with torch.no_grad():
-        batch = tokenizer.batch_encode_plus(text_list, padding=True, return_tensors='pt', max_length=256, truncation=True)
+        batch = tokenizer.batch_encode_plus(text_list, padding=True, return_tensors='pt', max_length=256,
+                                            truncation=True)
         input_ids = batch['input_ids'].cuda()
         mask = batch['attention_mask'].cuda()
         embeddings = model(input_ids=input_ids, attention_mask=mask).pooler_output
         # embeddings = F.normalize(embeddings)
-    return embeddings.cpu() 
+    return embeddings.cpu()
+
 
 def inference(**args):
     data = DPRDataset(args['data_path'])
@@ -71,10 +76,11 @@ def inference(**args):
         embed = torch.cat(embeddings)
         torch.save((text_lists, embed), f'dpr_chunk_{args["local_rank"]}_{counter}.pt')
 
+
 if __name__ == "__main__":
     tokenizer = DPRContextEncoderTokenizer.from_pretrained("facebook/dpr-ctx_encoder-single-nq-base")
     model = DPRContextEncoder.from_pretrained("facebook/dpr-ctx_encoder-single-nq-base")
-    
+
     args = vars(parser_args())
     torch.cuda.set_device(args['local_rank'])
     torch.distributed.init_process_group(backend='nccl', init_method='env://')
@@ -83,4 +89,3 @@ if __name__ == "__main__":
 
     inference(**args)
     torch.distributed.barrier()
-

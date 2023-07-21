@@ -1,11 +1,12 @@
-import json
 import ipdb
-from tqdm import tqdm
 from nltk.tokenize import sent_tokenize
+from tqdm import tqdm
+
 
 def sentence_token_nltk(str):
     sent_tokenize_list = sent_tokenize(str)
     return sent_tokenize_list
+
 
 chunk_size = 128
 

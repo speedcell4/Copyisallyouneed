@@ -1,19 +1,21 @@
 # %%
-import pickle
-import jsonlines
-import nltk
-from nltk.tokenize import sent_tokenize
-from nltk import word_tokenize
-import numpy as np
-from tabulate import tabulate
-from mosestokenizer import *
-import random
-from random import choices
 import os
-import sys
+import pickle
+import random
 import re
+import sys
 from collections import defaultdict as ddict
-from scipy.stats import pearsonr, spearmanr, kendalltau
+from random import choices
+
+import jsonlines
+import numpy as np
+from mosestokenizer import *
+from nltk import word_tokenize
+from nltk.tokenize import sent_tokenize
+from scipy.stats import kendalltau
+from scipy.stats import pearsonr
+from scipy.stats import spearmanr
+from tabulate import tabulate
 
 # nltk.download('stopwords')
 detokenizer = MosesDetokenizer('en')

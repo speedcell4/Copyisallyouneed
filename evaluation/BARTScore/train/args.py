@@ -1,5 +1,6 @@
 import argparse
 import os
+
 from transformers import SchedulerType
 
 
@@ -7,10 +8,12 @@ def pretrain_args():
     parser = argparse.ArgumentParser(description="Finetune a transformers model on a Seq2Seq task")
 
     parser.add_argument(
-        "--train_file", type=str, default='data/parabank2.json', help="A csv or a json file containing the training data."
+        "--train_file", type=str, default='data/parabank2.json',
+        help="A csv or a json file containing the training data."
     )
     parser.add_argument(
-        "--validation_file", type=str, default='data/eval.json', help="A csv or a json file containing the validation data."
+        "--validation_file", type=str, default='data/eval.json',
+        help="A csv or a json file containing the validation data."
     )
 
     parser.add_argument(

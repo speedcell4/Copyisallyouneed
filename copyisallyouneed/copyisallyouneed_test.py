@@ -1,10 +1,12 @@
-from header import *
+import sys
+
+from config import *
 from dataloader import *
 from models import *
-from config import *
-import sys
+
 sys.path.append('../data/')
 from dpr_en_wiki_1024 import Retriever
+
 
 def parser_args():
     parser = argparse.ArgumentParser(description='train parameters')
@@ -14,8 +16,10 @@ def parser_args():
     parser.add_argument('--recall_topk', type=int, default=20)
     return parser.parse_args()
 
+
 def main_generation(**args):
-    retriever = Retriever(f'../data/{args["dataset"]}_1024/base_data_128.txt', 200, f'../data/dpr_en_wiki_1024/subindex_added', 0, split_rate=1.0, nprobe=10)
+    retriever = Retriever(f'../data/{args["dataset"]}_1024/base_data_128.txt', 200,
+                          f'../data/dpr_en_wiki_1024/subindex_added', 0, split_rate=1.0, nprobe=10)
     # retriever = Retriever(f'../data/wikitext103_1024/base_data_128.txt', 200, f'../data/dpr_1024', 0)
     args['mode'] = 'test'
     config = load_config(args)
@@ -27,7 +31,7 @@ def main_generation(**args):
     collection = []
     # with open(f'../data/{args["dataset"]}_1024/debug_test.txt') as f:
     with open(f'../data/wikitext103_1024/test.txt') as f:
-    # with open(f'../data/{args["dataset"]}_1024/test.txt') as f:
+        # with open(f'../data/{args["dataset"]}_1024/test.txt') as f:
         # collect the valid prefixes
         texts = []
         for line in tqdm(f.readlines()):
@@ -40,18 +44,23 @@ def main_generation(**args):
         print(f'[!] collect {len(texts)} valid samples which have at least 32 tokens in prefix')
 
         for prefix, reference in tqdm(texts):
-            text, candidates, time_cost = agent.generate_one_sample(prefix, retriever, decoding_method=args["decoding_method"], top_k=0, top_p=0.95, temp=1., get_time_cost=True)
+            text, candidates, time_cost = agent.generate_one_sample(prefix, retriever,
+                                                                    decoding_method=args["decoding_method"], top_k=0,
+                                                                    top_p=0.95, temp=1., get_time_cost=True)
             collection.append({
-                'prefix': prefix, 
-                'reference': reference, 
-                'text': text, 
+                'prefix': prefix,
+                'reference': reference,
+                'text': text,
                 'phrases': candidates,
                 'time_cost': time_cost
             })
     return collection
 
+
 if __name__ == "__main__":
     args = vars(parser_args())
     result = main_generation(**args)
-    with open(f'raw_files/random_runs_en_wiki_testset/{args["dataset"]}_copyisallyouneed_result_{args["decoding_method"]}_wikitext_index_on_wikitext103_testset.json', 'w') as f:
+    with open(
+            f'raw_files/random_runs_en_wiki_testset/{args["dataset"]}_copyisallyouneed_result_{args["decoding_method"]}_wikitext_index_on_wikitext103_testset.json',
+            'w') as f:
         json.dump(result, f, indent=4)

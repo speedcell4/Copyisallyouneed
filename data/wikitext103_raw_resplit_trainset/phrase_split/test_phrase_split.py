@@ -1,23 +1,12 @@
-import pickle
-import nltk
-import torch
-import multiprocessing
-from itertools import chain
-import spacy
-import re
-import torch
-import subprocess
-from copy import deepcopy
-import time
-import random
-from tqdm import tqdm
 import argparse
 import json
-import ipdb
-import multiprocessing
+import pickle
 
+import nltk
+from tqdm import tqdm
 
 '''test phrase copy for debugging'''
+
 
 def parser_args():
     parser = argparse.ArgumentParser()
@@ -39,14 +28,15 @@ def load_base_data(path):
             dataset[id] = chunk
     return dataset
 
+
 class SearchItem:
 
     def __init__(
-        self,
-        min_length,
-        max_length,
-        item,
-        punc,
+            self,
+            min_length,
+            max_length,
+            item,
+            punc,
     ):
 
         prefix, reference, candidates = item
@@ -65,7 +55,7 @@ class SearchItem:
         self.punc = punc
         self.last_rest, self.current_rest = [], []
         self.cache = []
-    
+
     def move(self):
         while not self.is_end():
             if len(self.cache) > 1 and self.cache[-1] in self.punc:
@@ -149,14 +139,17 @@ class SearchItem:
         if self.pointer < len(self.data):
             self.pointer -= 1
 
+
 def search_for_multiple_instance(
-    min_length,
-    max_length,
-    jobs,
-    args,
-    path
+        min_length,
+        max_length,
+        jobs,
+        args,
+        path
 ):
-    punc = set([',', '.', '"', "'", '?', '!', '@', '-', '<', '>', ':', ';', '/', '_', '+', '=', '~', '`', '#', '$', '%', '^', '&', '*', '(', ')', '[', ']', '{', '}'])
+    punc = set(
+        [',', '.', '"', "'", '?', '!', '@', '-', '<', '>', ':', ';', '/', '_', '+', '=', '~', '`', '#', '$', '%', '^',
+         '&', '*', '(', ')', '[', ']', '{', '}'])
     results_overall = []
     with open(path, 'w') as f:
         counter = 0
@@ -178,6 +171,7 @@ def search_for_multiple_instance(
                 item = json.dumps(item, ensure_ascii=False)
                 f.write(f'{item}\n')
 
+
 def clean_data(result):
     units = []
     empty_cache = []
@@ -193,11 +187,13 @@ def clean_data(result):
         units.append((' '.join(empty_cache), []))
     return units
 
+
 def main_search(args, jobs, idx, path):
     pbar = tqdm(jobs)
     batch_size = args['bsz']
     min_length, max_length = 2, 16
     search_for_multiple_instance(min_length, max_length, jobs, args, path)
+
 
 if __name__ == '__main__':
     args = vars(parser_args())

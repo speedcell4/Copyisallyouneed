@@ -1,5 +1,6 @@
+import os
+
 from config import load_base_config
-import os, sys, ipdb
 
 if __name__ == "__main__":
     config = load_base_config()

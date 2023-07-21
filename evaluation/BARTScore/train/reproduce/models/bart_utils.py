@@ -1,9 +1,11 @@
-import torch
 import random
-import torch.nn as nn
-from transformers import BartTokenizer, BartForConditionalGeneration
-import torch.nn.functional as F
 from typing import Optional
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from transformers import BartForConditionalGeneration
+from transformers import BartTokenizer
 
 
 def move_device(tensor, device):

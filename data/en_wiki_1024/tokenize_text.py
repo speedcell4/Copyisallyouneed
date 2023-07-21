@@ -1,18 +1,19 @@
-import json
-import ipdb
-from tqdm import tqdm
-from nltk.tokenize import sent_tokenize
 import spacy
+from nltk.tokenize import sent_tokenize
+from tqdm import tqdm
+
 
 def sentence_token_nltk(str):
     sent_tokenize_list = sent_tokenize(str)
     return sent_tokenize_list
 
+
 chunk_size = 128
-nlp = spacy.load('en_core_web_sm', disable=['ner', 'tagger', 'textcat', 'parser', 'tok2vec', 'lemmatizer', 'attribute_ruler'])
+nlp = spacy.load('en_core_web_sm',
+                 disable=['ner', 'tagger', 'textcat', 'parser', 'tok2vec', 'lemmatizer', 'attribute_ruler'])
 
 with open('base_data_128.txt') as f:
-# with open('test.txt') as f:
+    # with open('test.txt') as f:
     new_datasets, idx = [], 0
     for item in tqdm(f.readlines()):
         items = item.split('\t')

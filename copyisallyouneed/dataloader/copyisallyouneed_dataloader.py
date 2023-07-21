@@ -3,7 +3,7 @@ from .util_func import *
 
 
 class CopyisallyouneedWikitext103Dataset(Dataset):
-    
+
     def __init__(self, **args):
         self.args = args
         self.bert_vocab = AutoTokenizer.from_pretrained(args['phrase_encoder_tokenizer'][args['lang']])
@@ -49,7 +49,8 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
         self.cache = load_lines_chunk(self.current_file_handler, self.buffer_size)
         if len(self.cache) == 0:
             # current file runs over, cyclely loading
-            self.current_file_index = 0 if self.current_file_index == len(self.file_lists) - 1 else self.current_file_index + 1
+            self.current_file_index = 0 if self.current_file_index == len(
+                self.file_lists) - 1 else self.current_file_index + 1
             self.current_file_handler = open(self.file_lists[self.current_file_index], 'r')
             self.cache = load_lines_chunk(self.current_file_handler, self.buffer_size)
         random.shuffle(self.cache)
@@ -120,9 +121,9 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
                 else:
                     # TODO: sanity check for the post_phrase
                     doc_ = self.base_data[base_index]
-                pre_phrase, post_phrase = doc_[:pos_in_doc], doc_[pos_in_doc+length_s:]
-                phrase = doc_[pos_in_doc:pos_in_doc+length_s]
-                
+                pre_phrase, post_phrase = doc_[:pos_in_doc], doc_[pos_in_doc + length_s:]
+                phrase = doc_[pos_in_doc:pos_in_doc + length_s]
+
                 # bert-base-cased UNK replacement
                 phrase = phrase.replace('< |endoftext| >', '[UNK]')
                 pre_phrase = pre_phrase.replace('< |endoftext| >', '[UNK]')
@@ -130,18 +131,20 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
 
                 phrase_ids, pre_phrase_ids, post_phrase_ids = self.bert_vocab.batch_encode_plus([
                     phrase, pre_phrase, post_phrase
-                    ], add_special_tokens=False)['input_ids']
+                ], add_special_tokens=False)['input_ids']
                 self._truncate_triplet(
-                    pre_phrase_ids, 
-                    phrase_ids, 
-                    post_phrase_ids, 
+                    pre_phrase_ids,
+                    phrase_ids,
+                    post_phrase_ids,
                     self.args['doc_max_length'] - 2
                 )
                 # special case for the phrase in the prefix
                 if base_index == docid:
-                    doc_ids_ = [self.bert_vocab.cls_token_id] + pre_phrase_ids + phrase_ids + post_phrase_ids + [self.bert_vocab.cls_token_id]
+                    doc_ids_ = [self.bert_vocab.cls_token_id] + pre_phrase_ids + phrase_ids + post_phrase_ids + [
+                        self.bert_vocab.cls_token_id]
                 else:
-                    doc_ids_ = [self.bert_vocab.cls_token_id] + pre_phrase_ids + phrase_ids + post_phrase_ids + [self.bert_vocab.sep_token_id]
+                    doc_ids_ = [self.bert_vocab.cls_token_id] + pre_phrase_ids + phrase_ids + post_phrase_ids + [
+                        self.bert_vocab.sep_token_id]
                 doc_s_pos, doc_e_pos = 1 + len(pre_phrase_ids), len(pre_phrase_ids) + len(phrase_ids)
                 doc_ids.append(torch.LongTensor(doc_ids_))
                 doc_index.append((doc_s_pos, doc_e_pos))
@@ -151,7 +154,7 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
 
     def save(self):
         pass
-        
+
     def collate(self, batch):
         assert len(batch) == 1
         ids, dids, dindex, pos_ids, vl = batch[0]
@@ -159,14 +162,15 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
         dindex_e = torch.LongTensor([i for _, i in dindex])
         ids = pad_sequence(ids, batch_first=True, padding_value=self.vocab.eos_token_id)
         dids = pad_sequence(dids, batch_first=True, padding_value=self.bert_vocab.pad_token_id)
-        ids_mask, dids_mask = generate_mask(ids, pad_token_idx=self.vocab.eos_token_id), generate_mask(dids, pad_token_idx=self.bert_vocab.pad_token_id)
+        ids_mask, dids_mask = generate_mask(ids, pad_token_idx=self.vocab.eos_token_id), generate_mask(dids,
+                                                                                                       pad_token_idx=self.bert_vocab.pad_token_id)
         ids, dids, ids_mask, dids_mask, dindex_s, dindex_e = to_cuda(ids, dids, ids_mask, dids_mask, dindex_s, dindex_e)
         return {
-            'ids': ids, 
-            'dids': dids, 
+            'ids': ids,
+            'dids': dids,
             'vl': vl,
-            'ids_mask': ids_mask, 
-            'dids_mask': dids_mask, 
+            'ids_mask': ids_mask,
+            'dids_mask': dids_mask,
             'dindex_s': dindex_s,
             'dindex_e': dindex_e,
             'pos_ids': pos_ids,
@@ -174,7 +178,7 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
 
 
 class CopyisallyouneedChineseDataset(Dataset):
-    
+
     def __init__(self, **args):
         self.args = args
         self.bert_vocab = AutoTokenizer.from_pretrained(args['phrase_encoder_tokenizer'][args['lang']])
@@ -219,7 +223,8 @@ class CopyisallyouneedChineseDataset(Dataset):
         self.cache = load_lines_chunk(self.current_file_handler, self.buffer_size)
         if len(self.cache) == 0:
             # current file runs over, cyclely loading
-            self.current_file_index = 0 if self.current_file_index == len(self.file_lists) - 1 else self.current_file_index + 1
+            self.current_file_index = 0 if self.current_file_index == len(
+                self.file_lists) - 1 else self.current_file_index + 1
             self.current_file_handler = open(self.file_lists[self.current_file_index], 'r')
             self.cache = load_lines_chunk(self.current_file_handler, self.buffer_size)
         random.shuffle(self.cache)
@@ -257,7 +262,7 @@ class CopyisallyouneedChineseDataset(Dataset):
                     break
                 if docid:
                     docid = docid[0]
-                    if counter > 0 and item_o == self.base_data[docid[0]][docid[1]:docid[1]+length_s]:
+                    if counter > 0 and item_o == self.base_data[docid[0]][docid[1]:docid[1] + length_s]:
                         docs.append((counter - 1, length_s, len(items), docid[0], docid[1], item_o))
                 ids.extend(items)
                 counter += len(items)
@@ -282,8 +287,8 @@ class CopyisallyouneedChineseDataset(Dataset):
             pos_index, pos_index_end = [], []
             for pos_in_ids, length_s, length_i, docid, pos_in_doc, item_o in docs:
                 doc_ = self.base_data[docid]
-                pre_phrase, post_phrase = doc_[:pos_in_doc], doc_[pos_in_doc+length_s:]
-                phrase = doc_[pos_in_doc:pos_in_doc+length_s]
+                pre_phrase, post_phrase = doc_[:pos_in_doc], doc_[pos_in_doc + length_s:]
+                phrase = doc_[pos_in_doc:pos_in_doc + length_s]
                 phrase_ids = self.bert_vocab.encode(phrase, add_special_tokens=False)
                 pre_phrase_ids = self.bert_vocab.encode(pre_phrase, add_special_tokens=False)
                 post_phrase_ids = self.bert_vocab.encode(post_phrase, add_special_tokens=False)
@@ -292,9 +297,11 @@ class CopyisallyouneedChineseDataset(Dataset):
                 except:
                     continue
                 if base_index == docid:
-                    doc_ids_ = [self.bert_vocab.cls_token_id] + pre_phrase_ids + phrase_ids + post_phrase_ids + [self.bert_vocab.cls_token_id]
+                    doc_ids_ = [self.bert_vocab.cls_token_id] + pre_phrase_ids + phrase_ids + post_phrase_ids + [
+                        self.bert_vocab.cls_token_id]
                 else:
-                    doc_ids_ = [self.bert_vocab.cls_token_id] + pre_phrase_ids + phrase_ids + post_phrase_ids + [self.bert_vocab.sep_token_id]
+                    doc_ids_ = [self.bert_vocab.cls_token_id] + pre_phrase_ids + phrase_ids + post_phrase_ids + [
+                        self.bert_vocab.sep_token_id]
                 doc_s_pos, doc_e_pos = 1 + len(pre_phrase_ids), len(pre_phrase_ids) + len(phrase_ids)
                 doc_ids.append(torch.LongTensor(doc_ids_))
                 doc_index.append((doc_s_pos, doc_e_pos))
@@ -306,7 +313,7 @@ class CopyisallyouneedChineseDataset(Dataset):
 
     def save(self):
         pass
-        
+
     def collate(self, batch):
         assert len(batch) == 1
         ids, dids, dindex, pos_ids, pos_ids_end, vl = batch[0]
@@ -319,14 +326,15 @@ class CopyisallyouneedChineseDataset(Dataset):
         else:
             ids = pad_sequence(ids, batch_first=True, padding_value=self.vocab.eos_token_id)
             dids = pad_sequence(dids, batch_first=True, padding_value=self.bert_vocab.pad_token_id)
-            ids_mask, dids_mask = generate_mask(ids, pad_token_idx=self.vocab.eos_token_id), generate_mask(dids, pad_token_idx=self.bert_vocab.pad_token_id)
+            ids_mask, dids_mask = generate_mask(ids, pad_token_idx=self.vocab.eos_token_id), generate_mask(dids,
+                                                                                                           pad_token_idx=self.bert_vocab.pad_token_id)
         ids, dids, ids_mask, dids_mask, dindex_s, dindex_e = to_cuda(ids, dids, ids_mask, dids_mask, dindex_s, dindex_e)
         return {
-            'ids': ids, 
-            'dids': dids, 
+            'ids': ids,
+            'dids': dids,
             'vl': vl,
-            'ids_mask': ids_mask, 
-            'dids_mask': dids_mask, 
+            'ids_mask': ids_mask,
+            'dids_mask': dids_mask,
             'dindex_s': dindex_s,
             'dindex_e': dindex_e,
             'pos_ids': pos_ids,

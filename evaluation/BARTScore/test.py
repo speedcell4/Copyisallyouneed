@@ -1,14 +1,13 @@
-from bart_score import BARTScorer
 import numpy as np
 from tqdm import tqdm
-from torch.cuda.amp import autocast
-import ipdb
-import mauve
-import json
-import torch
-from torch.nn.utils.rnn import pad_sequence
-from transformers import AutoModel, AutoTokenizer
 import argparse
+import json
+
+import numpy as np
+import torch
+from tqdm import tqdm
+from transformers import AutoTokenizer
+
 from bart_score import BARTScorer
 
 
@@ -17,6 +16,7 @@ def parse_config():
     parser.add_argument("--test_path", type=str, default='gpt2_result.json')
     parser.add_argument("--device", type=int)
     return parser.parse_args()
+
 
 def load_result(path):
     with open(path) as f:
@@ -32,6 +32,7 @@ def load_result(path):
     print(f'[!] collect {len(dataset)} samples')
     return dataset
 
+
 if __name__ == "__main__":
     args = vars(parse_config())
     batch_size = 4
@@ -45,4 +46,5 @@ if __name__ == "__main__":
             s = bart_scorer.score([result], [reference], batch_size=4)
             scores.append(s)
         s = round(np.mean(s), 4)
-    print('Results for', args['test_path'], 'BARTScore:', s, 'Dataset size', len(dataset), file=open(f'{args["test_path"]}_bartscore_result.txt', 'w'))
+    print('Results for', args['test_path'], 'BARTScore:', s, 'Dataset size', len(dataset),
+          file=open(f'{args["test_path"]}_bartscore_result.txt', 'w'))

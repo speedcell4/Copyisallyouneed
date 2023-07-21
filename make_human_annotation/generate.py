@@ -1,15 +1,9 @@
-import json
-import os
-import ipdb
-from tqdm import tqdm
-from transformers import AutoTokenizer
-import pickle
-import random
-import ipdb
-import xlrd
-import xlwt
 import argparse
+import json
 
+import ipdb
+import xlwt
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--baseline_name', type=str)
@@ -17,13 +11,12 @@ args = vars(parser.parse_args())
 
 
 def make_evaluation_file(save_name, data):
-
     wb = xlwt.Workbook()
     sheet = wb.add_sheet('标注数据')
     sheet.col(1).width = 768 * 40
     style = xlwt.XFStyle()
     font = xlwt.Font()
-    font.height = 15*11
+    font.height = 15 * 11
     style.font = font
 
     alignment = xlwt.Alignment()
@@ -49,7 +42,7 @@ def make_evaluation_file(save_name, data):
         if '##' in method_0 or '##' in method_1:
             ipdb.set_trace()
 
-        sheet.write(line_counter, 0, f'前缀-{idx+1}', style)
+        sheet.write(line_counter, 0, f'前缀-{idx + 1}', style)
         sheet.write(line_counter, 1, prefix, style)
         sheet.write(line_counter, 2, '哪一个更好', style)
         line_counter += 1
@@ -67,7 +60,7 @@ def make_evaluation_file(save_name, data):
         sheet.row(i).height = 40 * 35
     wb.save(save_name)
 
+
 with open(f'annotation_files/{args["baseline_name"]}/human_annotation.json') as f:
     data = json.load(f)
     make_evaluation_file(f'annotation_files/{args["baseline_name"]}/copyisallyouneed-{args["baseline_name"]}.xls', data)
-

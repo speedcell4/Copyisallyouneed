@@ -1,13 +1,14 @@
+import argparse
+import pickle
+
+import ipdb
+import nltk
 import torch
 import torch.nn.functional as F
-import nltk
-import pickle
-import ipdb
-from torch.utils.data import dataset, dataloader
-from transformers import DPRContextEncoder, DPRContextEncoderTokenizer
-import argparse
 from tqdm import tqdm
-import torch.distributed as dist
+from transformers import DPRContextEncoder
+from transformers import DPRContextEncoderTokenizer
+
 from .utils import *
 
 
@@ -21,6 +22,7 @@ def parser_args():
     parser.add_argument('--chunk_length', default=128, type=int)
     return parser.parse_args()
 
+
 def load_base_data(path):
     datasets, keys = {}, []
     with open(path) as f:
@@ -31,8 +33,9 @@ def load_base_data(path):
             # if label.endswith(',0'):
             datasets[label] = document
             keys.append(label)
-    print(f'[!] load {len(datasets)} samples') 
-    return datasets, keys 
+    print(f'[!] load {len(datasets)} samples')
+    return datasets, keys
+
 
 def append_wikitext_base_data(path, datasets, keys):
     path = path.replace('en_wiki', 'wikitext103')
@@ -43,8 +46,9 @@ def append_wikitext_base_data(path, datasets, keys):
             label = 'wikitext,' + items[-1].strip()
             datasets[label] = document
             keys.append(label)
-    print(f'[!] load {len(datasets)} samples') 
-    return datasets, keys 
+    print(f'[!] load {len(datasets)} samples')
+    return datasets, keys
+
 
 def clean_data(tokens):
     string = ' '.join(tokens)
@@ -55,6 +59,7 @@ def clean_data(tokens):
     string = string.replace(' : ', ': ')
     # string = string.replace(' \'', '\'')
     return string
+
 
 class Retriever:
 
@@ -70,7 +75,8 @@ class Retriever:
         # self.base_data, _ = append_wikitext_base_data(path, self.base_data, keys)
 
     def search(self, text_list, pool_size):
-        batch = self.tokenizer.batch_encode_plus(text_list, padding=True, return_tensors='pt', max_length=self.max_length, truncation=True)
+        batch = self.tokenizer.batch_encode_plus(text_list, padding=True, return_tensors='pt',
+                                                 max_length=self.max_length, truncation=True)
         input_ids = batch['input_ids'].cuda()
         mask = batch['attention_mask'].cuda()
         embeddings = self.model(input_ids=input_ids, attention_mask=mask).pooler_output
@@ -79,10 +85,9 @@ class Retriever:
         result, _ = self.searcher._search(embeddings, topk=pool_size)
         result = [[self.base_data[j].replace('<|endoftext|>', '[UNK]') for j in i] for i in result]
         return result
-    
+
 
 def search_one_job(worker_id):
-
     # encode the test prefix
     # with open(f'../{args["dataset"]}/new_test.txt') as f:
     with open(f'../{args["dataset"]}/test.txt') as f:
@@ -104,16 +109,17 @@ def search_one_job(worker_id):
     with torch.no_grad():
         embeds = []
         for idx in tqdm(range(0, len(test_set), 256)):
-            test_list = [prefix for prefix, reference in test_set[idx:idx+256]]
-            batch = tokenizer.batch_encode_plus(test_list, padding=True, return_tensors='pt', max_length=256, truncation=True)
+            test_list = [prefix for prefix, reference in test_set[idx:idx + 256]]
+            batch = tokenizer.batch_encode_plus(test_list, padding=True, return_tensors='pt', max_length=256,
+                                                truncation=True)
             input_ids = batch['input_ids'].cuda()
             mask = batch['attention_mask'].cuda()
-            embeddings = model(input_ids=input_ids, attention_mask=mask).pooler_output    # [B, E]
-            embeddings = embeddings.cpu() 
+            embeddings = model(input_ids=input_ids, attention_mask=mask).pooler_output  # [B, E]
+            embeddings = embeddings.cpu()
             embeds.append(embeddings)
         embeds = torch.cat(embeds).numpy()
         assert len(embeds) == len(test_set)
-    
+
     searcher = Searcher('Flat', dimension=768, nprobe=1)
     searcher.load('dpr_faiss.ckpt', 'dpr_corpus.ckpt')
     searcher.move_to_gpu(device=args['local_rank'])
@@ -124,9 +130,9 @@ def search_one_job(worker_id):
     chunk_prefix_path = f'../{args["dataset"]}/test_dpr_search_{args["chunk_length"]}.pkl'
     counter = 0
     for i in range(0, len(test_set), args['batch_size']):
-        subprefix = [prefix for prefix, reference in test_set[i:i+args['batch_size']]]
-        subreference = [reference for prefix, reference in test_set[i:i+args['batch_size']]]
-        subembed = embeds[i:i+args['batch_size']]
+        subprefix = [prefix for prefix, reference in test_set[i:i + args['batch_size']]]
+        subreference = [reference for prefix, reference in test_set[i:i + args['batch_size']]]
+        subembed = embeds[i:i + args['batch_size']]
         result = searcher._search(subembed, topk=args['pool_size'])
         for p, r, rest in zip(subprefix, subreference, result):
             # collection.append((p, r, rest[1:]))
@@ -134,6 +140,7 @@ def search_one_job(worker_id):
         pbar.update(len(subreference))
     pickle.dump(collection, open(f'{chunk_prefix_path}', 'wb'))
     print(f'[!] save data into {chunk_prefix_path}')
+
 
 if __name__ == '__main__':
     args = vars(parser_args())

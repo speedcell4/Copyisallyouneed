@@ -1,41 +1,44 @@
-import torch
-import ipdb
-from copy import deepcopy
-from tqdm import tqdm
 import random
-import requests
-import json
-from itertools import (takewhile, repeat, islice)
+from copy import deepcopy
+from itertools import islice
+from itertools import repeat
+from itertools import takewhile
+
+import torch
+from tqdm import tqdm
 
 
 def modify_sentence(ids, min_change=2, prob=0.1, k=2):
     def _random_deletion(rids):
-        num_deletion = max(min_change, int(prob*len(rids)))
+        num_deletion = max(min_change, int(prob * len(rids)))
         delete_idx = random.sample(range(len(rids)), num_deletion)
         n_ids = [rids[i] for i in range(len(rids)) if i not in delete_idx]
         return n_ids
+
     def _random_swap(rids):
-        num_swap = max(min_change, int(prob*len(rids)))
+        num_swap = max(min_change, int(prob * len(rids)))
         swap_idx = [random.sample(range(len(rids)), 2) for _ in range(num_swap)]
         n_ids = deepcopy(rids)
         for i, j in swap_idx:
             n_ids[i], n_ids[j] = n_ids[j], n_ids[i]
         return n_ids
+
     def _random_duplicate(rids):
         # 1-gram or 2-gram
-        num_duplicate = max(min_change, int(prob*len(rids)))
-        duplicate_idx = random.sample(range(len(rids)-1), num_duplicate)
+        num_duplicate = max(min_change, int(prob * len(rids)))
+        duplicate_idx = random.sample(range(len(rids) - 1), num_duplicate)
         n_rids = []
         for idx, i in enumerate(rids):
             if idx in duplicate_idx:
                 if random.random() > 0.5:
                     # 2-gram
-                    n_rids.extend([rids[idx], rids[idx+1], rids[idx], rids[idx+1]])
+                    n_rids.extend([rids[idx], rids[idx + 1], rids[idx], rids[idx + 1]])
                 else:
                     n_rids.extend([rids[idx], rids[idx]])
             else:
                 n_rids.append(i)
         return n_rids
+
     rest = []
     for _ in range(k):
         rids = _random_deletion(ids)
@@ -47,7 +50,7 @@ def modify_sentence(ids, min_change=2, prob=0.1, k=2):
 
 def truncate_pair_with_other_ids(cids, rids, tcids, trids, scids, srids, max_length):
     # change the cids and rids in place
-    max_length -= 3    # [CLS], [SEP], [SEP]
+    max_length -= 3  # [CLS], [SEP], [SEP]
     while True:
         l = len(cids) + len(rids)
         if l <= max_length:
@@ -64,7 +67,7 @@ def truncate_pair_with_other_ids(cids, rids, tcids, trids, scids, srids, max_len
 
 def truncate_pair_with_labels(cids, cids_labels, rids, max_length, rids_labels=None):
     # change the cids and rids in place
-    max_length -= 3    # [CLS], [SEP], [SEP]
+    max_length -= 3  # [CLS], [SEP], [SEP]
     while True:
         l = len(cids) + len(rids)
         if l <= max_length:
@@ -80,7 +83,7 @@ def truncate_pair_with_labels(cids, cids_labels, rids, max_length, rids_labels=N
 
 def truncate_pair(cids, rids, max_length):
     # change the cids and rids in place
-    max_length -= 3    # [CLS], [SEP], [SEP]
+    max_length -= 3  # [CLS], [SEP], [SEP]
     while True:
         l = len(cids) + len(rids)
         if l <= max_length:
@@ -92,7 +95,7 @@ def truncate_pair(cids, rids, max_length):
 
 
 def truncate_pair_two_candidates(cids, rids1, rids2, max_length, sids=None):
-    max_length -= 4    # [CLS] ctx [SEP] rids1 [SEP] rids2 [SEP]
+    max_length -= 4  # [CLS] ctx [SEP] rids1 [SEP] rids2 [SEP]
     while True:
         l = len(cids) + len(rids1) + len(rids2)
         if l <= max_length:
@@ -113,6 +116,7 @@ def generate_mask(ids, pad_token_idx=0):
     mask[ids == pad_token_idx] = 0.
     return mask
 
+
 def to_cuda(*args):
     '''map the tensor on cuda device'''
     if not torch.cuda.is_available():
@@ -125,9 +129,9 @@ def to_cuda(*args):
 
 
 def mask_sentence(
-        ids, min_mask_num, max_mask_num, masked_lm_prob, 
+        ids, min_mask_num, max_mask_num, masked_lm_prob,
         special_tokens=[], mask=-1, vocab_size=21128,
-    ):
+):
     '''change the ids, and return the mask_label'''
     num_valid = len([i for i in ids if i not in special_tokens])
     num_mask = max(
@@ -154,20 +158,23 @@ def mask_sentence(
             mask_label.append(-1)
     return mask_label
 
+
 # ========== dual-bert ========== #
 def length_limit(ids, max_len):
     '''the first token must be [CLS]'''
     if len(ids) > max_len:
-        ids = [ids[0]] + ids[-(max_len-1):]
+        ids = [ids[0]] + ids[-(max_len - 1):]
     return ids
+
 
 def length_limit_res(ids, max_len, sep=0):
     '''the last token must be [SEP], and the first token must be [CLS]'''
     if len(ids) > max_len:
-        ids = ids[:max_len-1] + [sep]
+        ids = ids[:max_len - 1] + [sep]
     return ids
 
-# ======== Evaluation Perturbation ========== # 
+
+# ======== Evaluation Perturbation ========== #
 def delete(ids, tids, delete_ratio=0.15, min_delete_num=2, special_tokens=[]):
     delete_num = max(
         min_delete_num,
@@ -189,6 +196,7 @@ def delete(ids, tids, delete_ratio=0.15, min_delete_num=2, special_tokens=[]):
     pert_label = [-1 if i == -1 else 0 for i in delete_label]
     return new_ids, delete_label, pert_label
 
+
 def duplicate(ids, duplicate_ratio=0.15, min_duplicate_num=2, special_tokens=[]):
     duplicate_num = max(
         min_duplicate_num,
@@ -208,7 +216,7 @@ def duplicate(ids, duplicate_ratio=0.15, min_duplicate_num=2, special_tokens=[])
         else:
             num = random.choice([2, 3, 4])
             new_ids.extend([i] * num)
-            duplicate_label.extend([len(new_ids)-i_ for i_ in range(num)])
+            duplicate_label.extend([len(new_ids) - i_ for i_ in range(num)])
     pert_label = [-1 if i == -1 else 1 for i in duplicate_label]
     return new_ids, duplicate_label, pert_label
 
@@ -238,9 +246,9 @@ def replacement(ids, replace_ratio=0.15, min_replace_num=2, vocab_size=0, specia
 
 
 def mask_sentence_only_mask(
-        ids, min_mask_num, max_mask_num, masked_lm_prob, 
+        ids, min_mask_num, max_mask_num, masked_lm_prob,
         special_tokens=[], mask=-1, vocab_size=21128,
-    ):
+):
     '''change the ids, and return the mask_label'''
     num_valid = len([i for i in ids if i not in special_tokens])
     num_mask = max(
@@ -261,6 +269,7 @@ def mask_sentence_only_mask(
             mask_label.append(-1)
     return mask_label
 
+
 # ========== context augmentation ========== #
 def sentence_shuffle(context_utterances):
     if len(context_utterances) == 1:
@@ -274,18 +283,21 @@ def sentence_shuffle(context_utterances):
         context_utterances = [context_utterances[i] for i in random_idx]
         return context_utterances
 
+
 def token_shuffle(context_utterances):
     for i in range(len(context_utterances)):
         random.shuffle(context_utterances[i])
     return context_utterances
 
+
 def sentence_deletion(context_utterances):
     if len(context_utterances) == 1:
         return context_utterances
     else:
-        random_idx = random.choice(range(len(context_utterances)-1))
+        random_idx = random.choice(range(len(context_utterances) - 1))
         context_utterances = [context_utterances[i] for i in range(len(context_utterances)) if i != random_idx]
         return context_utterances
+
 
 def replace_last_utterance(context_utterances, pool):
     response = random.choice(pool)['rids']
@@ -293,10 +305,12 @@ def replace_last_utterance(context_utterances, pool):
     context_utterances[-1] = response
     return context_utterances
 
+
 def random_insert_before_context(context_utterances, pool):
     u = random.choice(random.choice(pool)['cids'])
     context_utterances.insert(0, u)
     return context_utterances
+
 
 def random_insert_context(context_utterances, pool):
     u = random.choice(random.choice(pool)['cids'])
@@ -314,12 +328,14 @@ def texsmart_segmentation(engine, text, useful_pos_tag=None):
         seg_sentence.append(each_word.str)
     return seg_sentence
 
+
 # count lines of the large file
 def iter_count(file_name):
     buffer = 1024 * 1024
     with open(file_name) as f:
         buf_gen = takewhile(lambda x: x, (f.read(buffer) for _ in repeat(None)))
         return sum(buf.count('\n') for buf in buf_gen)
+
 
 # iter load the lines
 def load_lines_chunk(file, num_lines):
@@ -328,7 +344,6 @@ def load_lines_chunk(file, num_lines):
 
 
 ####### find the phrase start and end position in the sequence of tokens
-
 
 
 ## ppl utils function ##
@@ -343,9 +358,8 @@ def load_wikitext_data_split(vocab, data, args, debug=False):
         counter = 0
         while counter < len(ids):
             delta_length = args['ppl_max_len'] - len(ppl_texts[-1])
-            ppl_texts[-1].extend(ids[counter:counter+delta_length])
-            counter += len(ids[counter:counter+delta_length])
+            ppl_texts[-1].extend(ids[counter:counter + delta_length])
+            counter += len(ids[counter:counter + delta_length])
             if len(ppl_texts[-1]) == args['ppl_max_len']:
                 ppl_texts.append([])
     return ppl_texts
-

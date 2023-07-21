@@ -1,19 +1,18 @@
-from tqdm import tqdm
-import numpy as np
-from torch.cuda.amp import autocast
-import ipdb
-import mauve
-import json
-import torch
-from torch.nn.utils.rnn import pad_sequence
-from transformers import AutoModel, AutoTokenizer
 import argparse
+import json
+
+import mauve
+import numpy as np
+from tqdm import tqdm
+from transformers import AutoTokenizer
+
 
 def parse_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default='1.0')
     parser.add_argument("--device", type=int)
     return parser.parse_args()
+
 
 def load_result(path):
     with open(path) as f:
@@ -39,6 +38,7 @@ def load_result(path):
     print(f'[!] collect {len(dataset)} samples')
     return dataset
 
+
 if __name__ == "__main__":
     args = vars(parse_config())
     vocab = AutoTokenizer.from_pretrained('gpt2-large')
@@ -49,12 +49,12 @@ if __name__ == "__main__":
         path = f'raw_files/random_runs_retro_wikitext103/{args["dataset"]}_retro_result_sampling_random_seed_{seed}.json'
         dataset = load_result(path)
         out = mauve.compute_mauve(
-            p_text=[i[0] for i in dataset], 
-            q_text=[i[1] for i in dataset], 
-            device_id=args['device'], 
-            max_text_length=512, 
-            verbose=False, 
-            mauve_scaling_factor=2.0, 
+            p_text=[i[0] for i in dataset],
+            q_text=[i[1] for i in dataset],
+            device_id=args['device'],
+            max_text_length=512,
+            verbose=False,
+            mauve_scaling_factor=2.0,
             featurize_model_name='gpt2-large',
         )
         scores.append(out.mauve)
