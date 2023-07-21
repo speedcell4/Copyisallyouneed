@@ -1,8 +1,16 @@
+import os
+
+import numpy as np
+import transformers
+from torch.cuda.amp import autocast
+from torch.cuda.amp import GradScaler
+from torch.nn.utils import clip_grad_norm_
+from tqdm import tqdm
+
 from header import *
 
 
 class Agent:
-
     def __init__(self, model, args):
         super(Agent, self).__init__()
         self.args = args
@@ -82,7 +90,9 @@ class Agent:
             recoder.add_scalar(f'train/phrase_start_acc', phrase_start_acc, current_step)
             recoder.add_scalar(f'train/phrase_end_acc', phrase_end_acc, current_step)
         pbar.set_description(
-            f'[!] loss(s|e): {round(loss_1.item(), 4)}|{round(loss_2.item(), 4)}; acc: {round((token_start_acc + token_end_acc) / 2, 4)}|{round((phrase_start_acc + phrase_end_acc) / 2, 4)}')
+            f'[!] loss(s|e): {round(loss_1.item(), 4)}|{round(loss_2.item(), 4)}; '
+            f'acc: {round((token_start_acc + token_end_acc) / 2, 4)}|{round((phrase_start_acc + phrase_end_acc) / 2, 4)}'
+        )
         pbar.update(1)
 
     def load_latest_checkpoint(self):

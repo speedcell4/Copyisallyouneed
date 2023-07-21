@@ -1,4 +1,9 @@
-from header import *
+import torch
+from torch import nn
+from torch.nn import functional as F
+from transformers import AutoModel
+from transformers import AutoTokenizer
+from transformers import GPT2LMHeadModel
 
 
 class Copyisallyouneed(nn.Module):
@@ -9,8 +14,7 @@ class Copyisallyouneed(nn.Module):
 
         # bert-encoder model
         self.phrase_encoder = AutoModel.from_pretrained(
-            self.args['phrase_encoder_model'][self.args['lang']]
-        )
+            self.args['phrase_encoder_model'][self.args['lang']])
         self.bert_tokenizer = AutoTokenizer.from_pretrained(
             self.args['phrase_encoder_tokenizer'][self.args['lang']]
         )
@@ -19,7 +23,9 @@ class Copyisallyouneed(nn.Module):
         self.phrase_encoder.resize_token_embeddings(self.phrase_encoder.config.vocab_size + 2)
 
         # model and tokenizer
-        self.tokenizer = AutoTokenizer.from_pretrained(self.args['prefix_encoder_tokenizer'][self.args['lang']])
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            self.args['prefix_encoder_tokenizer'][self.args['lang']]
+        )
         self.vocab_size = len(self.tokenizer)
         self.pad = self.tokenizer.pad_token_id if self.args['lang'] == 'zh' else self.tokenizer.bos_token_id
 
@@ -45,9 +51,9 @@ class Copyisallyouneed(nn.Module):
         output = self.model(input_ids=ids, output_hidden_states=True)['hidden_states'][-1][:, -1, :]
         return output
 
-    def get_token_loss(self, ids, hs, ids_mask):
+    def get_token_loss(self, targets, hs, ids_mask):
         # no pad token
-        label = ids[:, 1:]
+        label = targets[:, 1:]
         logits = torch.matmul(
             hs[:, :-1, :],
             self.token_embeddings.t()
@@ -63,16 +69,21 @@ class Copyisallyouneed(nn.Module):
         return loss, gen_acc
 
     def forward(self, batch):
-        ## gpt2 query encoder
+        # gpt2 query encoder
         ids, ids_mask = batch['gpt2_ids'], batch['gpt2_mask']
-        last_hidden_states = \
-        self.model(input_ids=ids, attention_mask=ids_mask, output_hidden_states=True).hidden_states[-1]
+        *_, last_hidden_states = self.model(
+            input_ids=ids, attention_mask=ids_mask,
+            output_hidden_states=True,
+        ).hidden_states
         # get token loss
         loss_0, acc_0 = self.get_token_loss(ids, last_hidden_states, ids_mask)
 
-        ## encode the document with the BERT encoder model
+        # encode the document with the BERT encoder model
         dids, dids_mask = batch['bert_ids'], batch['bert_mask']
-        output = self.phrase_encoder(dids, dids_mask, output_hidden_states=True)['hidden_states'][-1]  # [B, S, E]
+        *_, output = self.phrase_encoder(
+            dids, dids_mask,
+            output_hidden_states=True,
+        )['hidden_states']  # [B, S, E]
         # collect the phrase start representations and phrase end representations
         s_rep = self.s_proj(output)
         e_rep = self.e_proj(output)
@@ -85,9 +96,10 @@ class Copyisallyouneed(nn.Module):
         query_end = query[:, self.model.config.hidden_size // 2:]
 
         # training the representations of the start tokens
-        candidate_reps = torch.cat([
-            self.token_embeddings[:, :self.model.config.hidden_size // 2],
-            s_rep], dim=0)
+        candidate_reps = torch.cat(
+            [self.token_embeddings[:, :self.model.config.hidden_size // 2], s_rep],
+            dim=0,
+        )
         logits = torch.matmul(query_start, candidate_reps.t())
         logits /= self.args['temp']
 
@@ -110,7 +122,7 @@ class Copyisallyouneed(nn.Module):
         assert padding_mask.shape == position_mask.shape
         # overall mask
         overall_mask = padding_mask * position_mask
-        ## remove the position mask
+        # remove the position mask
         # overall_mask = padding_mask
 
         new_logits = torch.where(overall_mask.to(torch.bool), logits, torch.tensor(-1e4).to(torch.half).cuda())
@@ -119,7 +131,7 @@ class Copyisallyouneed(nn.Module):
         loss_ = F.log_softmax(new_logits[query_padding_mask], dim=-1) * mask[query_padding_mask]
         loss_1 = (-loss_.sum(dim=-1)).mean()
 
-        ## split the token accuaracy and phrase accuracy
+        # split the token accuaracy and phrase accuracy
         phrase_indexes = start_labels > self.vocab_size
         phrase_indexes_ = phrase_indexes & query_padding_mask
         phrase_start_acc = new_logits[phrase_indexes_].max(dim=-1)[1] == start_labels[phrase_indexes_]
@@ -148,6 +160,7 @@ class Copyisallyouneed(nn.Module):
         phrase_indexes_ = ~phrase_indexes & query_padding_mask
         token_end_acc = new_logits[phrase_indexes_].max(dim=-1)[1] == end_labels[phrase_indexes_]
         token_end_acc = token_end_acc.to(torch.float).mean().item()
+
         return (
             loss_0,  # token loss
             loss_1,  # token-head loss

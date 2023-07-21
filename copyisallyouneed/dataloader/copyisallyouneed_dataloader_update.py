@@ -1,10 +1,19 @@
+import json
+from typing import Dict
+
+from torch import Tensor
+from torch.nn.utils.rnn import pad_sequence
+from torch.utils.data import Dataset
+from transformers import AutoTokenizer
+
 from header import *
 from .util_func import *
 
 
 class CopyisallyouneedWikitext103V2Dataset(Dataset):
-
     def __init__(self, **args):
+        super(CopyisallyouneedWikitext103V2Dataset, self).__init__()
+
         self.args = args
         self.bert_vocab = AutoTokenizer.from_pretrained(args['phrase_encoder_tokenizer'][args['lang']])
         self.bert_vocab.add_tokens(['<|endoftext|>', '[PREFIX]'])
@@ -43,11 +52,12 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
         self.base_data = base_data
         print(f'[!] load base data over')
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.size
 
-    def load_one_part(self):
+    def load_one_part(self) -> None:
         assert len(self.cache) == 0
+
         self.cache = load_lines_chunk(self.current_file_handler, self.buffer_size)
         if len(self.cache) == 0:
             # current file runs over, cyclely loading
@@ -57,7 +67,8 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
             self.cache = load_lines_chunk(self.current_file_handler, self.buffer_size)
         random.shuffle(self.cache)
 
-    def _truncate_triplet(self, a, b, c, max_length):
+    @staticmethod
+    def _truncate_triplet(a, b, c, max_length):
         while True:
             if len(a) + len(b) + len(c) <= max_length:
                 break
@@ -68,13 +79,13 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
                     c.pop()
 
     def __getitem__(self, i):
-        '''
+        """
         gpt2_batch: [B_v, S_v]
         bert_batch: [B_doc, S_doc]
         phrase_to_doc: [B_p]
         start_index: [B_p]
         end_index: [B_p]
-        '''
+        """
 
         gpt2_batch, cache_doc, docs, counter = [], set(), [], 0
         while counter < self.args['max_doc_size']:
@@ -218,21 +229,28 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
         assert counter == len(phrase_to_doc) + sum(error_label)
         query_num = counter - sum(error_label)
 
-        ######
         # prepare the batch
-        gpt2_ids = pad_sequence([torch.LongTensor(i) for i in gpt2_ids], padding_value=self.vocab.eos_token_id,
-                                batch_first=True)
-        start_labels = pad_sequence([torch.LongTensor(i) for i in start_labels], padding_value=self.vocab.eos_token_id,
-                                    batch_first=True)
-        end_labels = pad_sequence([torch.LongTensor(i) for i in end_labels], padding_value=self.vocab.eos_token_id,
-                                  batch_first=True)
-        bert_ids = pad_sequence([torch.LongTensor(i) for i in bert_batch], padding_value=self.bert_vocab.pad_token_id,
-                                batch_first=True)
+        gpt2_ids = pad_sequence(
+            [torch.LongTensor(i) for i in gpt2_ids],
+            padding_value=self.vocab.eos_token_id, batch_first=True,
+        )
+        start_labels = pad_sequence(
+            [torch.LongTensor(i) for i in start_labels],
+            padding_value=self.vocab.eos_token_id, batch_first=True,
+        )
+        end_labels = pad_sequence(
+            [torch.LongTensor(i) for i in end_labels],
+            padding_value=self.vocab.eos_token_id, batch_first=True,
+        )
+        bert_ids = pad_sequence(
+            [torch.LongTensor(i) for i in bert_batch],
+            padding_value=self.bert_vocab.pad_token_id, batch_first=True,
+        )
         gpt2_mask = generate_mask(gpt2_ids, pad_token_idx=self.vocab.eos_token_id)
         bert_mask = generate_mask(bert_ids, pad_token_idx=self.bert_vocab.pad_token_id)
 
-        ###### prepare the document mask (only for the query position)
-        ###### [Q, N_p]
+        # prepare the document mask (only for the query position)
+        # [Q, N_p]
         total_phrase_num = bert_ids.size(0) * bert_ids.size(1)
         query_num = counter - sum(error_label)
         pos_mask = torch.zeros(query_num, total_phrase_num).to(torch.long)
@@ -242,15 +260,17 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
             end_pos = phrase_to_doc[i] * chunk_size + chunk_size
             pos_mask[i, start_pos:end_pos] = 1
 
-        ###### get the query_pos position
+        # get the query_pos position
         # labels = (start_labels.reshape(-1) > len(self.vocab)).to(torch.long)
         return gpt2_ids, start_labels, end_labels, bert_ids, gpt2_mask, bert_mask, pos_mask
 
-    def save(self):
+    def save(self) -> None:
         pass
 
-    def collate(self, batch):
+    @staticmethod
+    def collate(batch) -> Dict[str, Tensor]:
         assert len(batch) == 1
+
         gpt2_ids, start_labels, end_labels, bert_ids, gpt2_mask, bert_mask, pos_mask = batch[0]
         return {
             'gpt2_ids': gpt2_ids.cuda(),

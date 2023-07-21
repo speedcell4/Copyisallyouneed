@@ -1,11 +1,11 @@
 import sys
 
 from config import *
+from data.dpr_en_wiki_1024 import Retriever
 from dataloader import *
 from models import *
 
 sys.path.append('../data/')
-from dpr_en_wiki_1024 import Retriever
 
 
 def parser_args():
@@ -18,8 +18,14 @@ def parser_args():
 
 
 def main_generation(**args):
-    retriever = Retriever(f'../data/{args["dataset"]}_1024/base_data_128.txt', 200,
-                          f'../data/dpr_en_wiki_1024/subindex_added', 0, split_rate=1.0, nprobe=10)
+    retriever = Retriever(
+        path=f'../data/{args["dataset"]}_1024/base_data_128.txt',
+        max_length=200,
+        root_dir=f'../data/dpr_en_wiki_1024/subindex_added',
+        local_rank=0,
+        split_rate=1.0,
+        nprobe=10,
+    )
     # retriever = Retriever(f'../data/wikitext103_1024/base_data_128.txt', 200, f'../data/dpr_1024', 0)
     args['mode'] = 'test'
     config = load_config(args)
@@ -44,9 +50,15 @@ def main_generation(**args):
         print(f'[!] collect {len(texts)} valid samples which have at least 32 tokens in prefix')
 
         for prefix, reference in tqdm(texts):
-            text, candidates, time_cost = agent.generate_one_sample(prefix, retriever,
-                                                                    decoding_method=args["decoding_method"], top_k=0,
-                                                                    top_p=0.95, temp=1., get_time_cost=True)
+            text, candidates, time_cost = agent.generate_one_sample(
+                text=prefix,
+                retriever=retriever,
+                decoding_method=args["decoding_method"],
+                top_k=0,
+                top_p=0.95,
+                temp=1.,
+                get_time_cost=True,
+            )
             collection.append({
                 'prefix': prefix,
                 'reference': reference,

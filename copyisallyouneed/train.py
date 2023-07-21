@@ -1,3 +1,5 @@
+from torch import distributed as dist
+
 from config import *
 from dataloader import *
 from models import *
@@ -16,7 +18,7 @@ def parser_args():
 def main(**args):
     torch.cuda.empty_cache()
     torch.cuda.set_device(args['local_rank'])
-    torch.distributed.init_process_group(backend='nccl', init_method='env://')
+    dist.init_process_group(backend='nccl', init_method='env://')
 
     args['global_rank'] = dist.get_rank()
     print(f'[!] global rank: {args["global_rank"]}')
@@ -49,15 +51,20 @@ def main(**args):
                 current_step=current_step,
                 pbar=pbar
             )
+
             if args['global_rank'] == 0 and current_step % args['save_every'] == 0 and current_step > 0:
-                save_path = f'{args["root_dir"]}/ckpt/{args["dataset"]}/{args["model"]}/best_{args["version"]}_{current_step}.pt'
+                save_path = f'{args["root_dir"]}/ckpt/{args["dataset"]}/' \
+                            f'{args["model"]}/best_{args["version"]}_{current_step}.pt'
                 agent.save_model_long(save_path, current_step)
             current_step += 1
+
             if current_step > args['total_step']:
                 over_train_flag = True
                 break
+
         if over_train_flag:
             break
+
     if sum_writer:
         sum_writer.close()
 
